@@ -24,8 +24,10 @@ $(RGB_LIBRARY): FORCE
 #led-timer-display : led-timer-display.o
 
 # All the binaries that have the same name as the object file.q
+#% : %.o $(RGB_LIBRARY)
+#	$(CXX) $< -o $@ $(LDFLAGS)
 % : %.o $(RGB_LIBRARY)
-	$(CXX) $< -o $@ $(LDFLAGS)
+	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c -o $@ $< $(LDFLAGS)
 
 #image-example.o : image-example.cc
 #	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<
