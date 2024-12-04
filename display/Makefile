@@ -27,7 +27,7 @@ led-timer-display : led-timer-display.o
 #% : %.o $(RGB_LIBRARY)
 #	$(CXX) $< -o $@ $(LDFLAGS)
 % : %.o $(RGB_LIBRARY)
-	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c -o $@ $< $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 #image-example.o : image-example.cc
 #	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<

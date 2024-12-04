@@ -32,7 +32,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 using namespace rgb_matrix;
 
@@ -89,7 +89,7 @@ static void add_micros(struct timespec *accumulator, long micros) {
   }
 }
 
-static void pause() {
+static void do_pause() {
   sleep(3);
 }
 
@@ -300,15 +300,15 @@ int main(int argc, char *argv[]) {
                                     line.c_str(), letter_spacing);
     }
 
-    x += scroll_direction;
-    if ((scroll_direction < 0 && x + length < 0) ||
-        (scroll_direction > 0 && x > canvas->width())) {
-      x = x_orig + ((scroll_direction > 0) ? -length : 0);
-      if (loops > 0) --loops;
-    }
-
-    // Make sure render-time delays are not influencing scroll-time
     if (speed > 0) {
+      x += scroll_direction;
+      if ((scroll_direction < 0 && x + length < 0) ||
+          (scroll_direction > 0 && x > canvas->width())) {
+        x = x_orig + ((scroll_direction > 0) ? -length : 0);
+        if (loops > 0) --loops;
+      }
+
+      // Make sure render-time delays are not influencing scroll-time
       if (next_frame.tv_sec == 0 && next_frame.tv_nsec == 0) {
         // First time. Start timer, but don't wait.
         clock_gettime(CLOCK_MONOTONIC, &next_frame);
@@ -317,9 +317,10 @@ int main(int argc, char *argv[]) {
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, NULL);
       }
     }
+
     // Swap the offscreen_canvas with canvas on vsync, avoids flickering
     offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
-    if (speed <= 0) pause();  // Nothing to scroll. Delay a few seconds before looping
+    if (speed <= 0) do_pause();  // Nothing to scroll. Delay a few seconds before looping
   }
 
   // Finished. Shut down the RGB matrix.
