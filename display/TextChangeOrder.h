@@ -40,7 +40,9 @@ class TextChangeOrder {
     [[nodiscard]] rgb_matrix::Color getBackgroundColor() const {return backgroundColor;}
 
     void setText(const char* aText) {text.assign(aText);}
+    void setString(const std::string& aString) {text = aString;}
     [[nodiscard]] const char* getText() const { return text.c_str(); }
+    std::string getString() const {return text;}
 
     void setVelocity(float aVelocity) {velocity = aVelocity;}
     [[nodiscard]] float getVelocity() const { return velocity; }

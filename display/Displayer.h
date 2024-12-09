@@ -21,8 +21,8 @@ class Displayer {
 
     static bool FullSaturation(const rgb_matrix::Color &c);
 
-    void startChangeOrder(TextChangeOrder aChangeOrder);
-    const TextChangeOrder& getChangeOrder() const {return currChangeOrder;}
+    void startChangeOrder(const TextChangeOrder& aChangeOrder);
+    [[nodiscard]] const TextChangeOrder& getChangeOrder() const {return currChangeOrder;}
     [[nodiscard]] bool isChangeOrderDone() const { return currChangeOrderDone; }
 
     void iota();    // continue working on any previously assigned task, then return (non-blocking)
@@ -53,8 +53,13 @@ class Displayer {
     int scroll_direction;
     int delay_speed_usec;
 
+    std::time_t last_change_time;   // seconds since epoch (C++17)
+
     [[nodiscard]] bool isExtremeColors() const;
     void updatePWMBits();
+    void dotCorners();
+    void setChangeDone() {setChangeDone(true);}
+    void setChangeDone(bool isChangeDone);
 };
 
 

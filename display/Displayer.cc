@@ -4,11 +4,13 @@
 
 #include "Displayer.h"
 
+#include <io.h>
+
 #include "led-matrix.h"
 #include "graphics.h"
 
-#include <time.h>    // for monitoring clock for steady scrolling
-#include <math.h>    // for fabs
+#include <ctime>    // for monitoring clock for steady scrolling
+#include <cmath>    // for fabs
 
 #define EXTREME_COLORS_PWM_BITS 1
 
@@ -16,9 +18,9 @@ using namespace rgb_matrix;
 
 static void add_micros(struct timespec *accumulator, long micros) {
   const long billion = 1000000000;
-  const int64_t nanos = (int64_t) micros * 1000;
+  const int64_t nanos = static_cast<int64_t>(micros) * 1000;
   accumulator->tv_sec += nanos / billion;
-  accumulator->tv_nsec += nanos % billion;
+  accumulator->tv_nsec += static_cast<long>(nanos % billion);
   while (accumulator->tv_nsec > billion) {
     accumulator->tv_nsec -= billion;
     accumulator->tv_sec += 1;
@@ -32,10 +34,14 @@ Displayer::Displayer(RGBMatrix::Options& aMatrix_options, rgb_matrix::RuntimeOpt
 
       currChangeOrder(),
       currChangeOrderDone(true),
+      next_frame(),
+
       x(0),
       y(0),
       scroll_direction(0),
-      delay_speed_usec(0)
+      delay_speed_usec(0),
+
+      last_change_time(0)
 {
 
     next_frame.tv_sec = 0;
@@ -82,26 +88,74 @@ void Displayer::updatePWMBits() {
     }
 }
 
-// TODO initially, and if unused for "a while", display dots in the four corners to clarify display is still on (if flag)
+static std::string replaceNonPrintableCharacters(std::string str, const char repl_char) {
+  // Iterate through each character in the string.
+  for (int i = 0; i < str.length(); i++) {
+    // Check if the character is printable.
+    if (!isprint(str[i])) {
+      if (isatty(STDIN_FILENO)) {
+        fprintf(stderr, "Replaced %02X with %c for display", str[i], repl_char);
+      }
 
-void Displayer::startChangeOrder(const TextChangeOrder aChangeOrder) {
+      str[i] = repl_char;
+    }
+  }
+  return str;
+}
+
+void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
+  last_change_time = std::time(nullptr);
+
   currChangeOrder = aChangeOrder;
+
+  // ensure text can be displayed
+  constexpr char UNPRINTABLE_CHAR_REPL = '&';
+  currChangeOrder.setString(replaceNonPrintableCharacters(currChangeOrder.getString(), UNPRINTABLE_CHAR_REPL));
 
   // reset scroll timing
   next_frame.tv_sec = 0;
   next_frame.tv_nsec = 0;
 
   scroll_direction = (currChangeOrder.getVelocity() >= 0) ? -1 : 1;
-  const float speed = fabs(currChangeOrder.getVelocity());
+  const auto speed = static_cast<float>(fabs(static_cast<double>(currChangeOrder.getVelocity())));
 
   delay_speed_usec = (currChangeOrder.isScrolling() || currChangeOrder.getSpacedFont().fontPtr == nullptr)
                          ? 0
-                         : 1000000 / speed / currChangeOrder.getSpacedFont().fontPtr->CharacterWidth('W');
+                         : static_cast<int>(1000000.0 / speed / currChangeOrder.getSpacedFont().fontPtr->CharacterWidth('W'));
 
   x = (currChangeOrder.getVelocityIsHorizontal() && scroll_direction < 0) ? canvas->width() : x_origin;
   y = (!currChangeOrder.getVelocityIsHorizontal() && scroll_direction < 0) ? canvas->height() : y_origin;
 
-  currChangeOrderDone = false;
+  setChangeDone(false);
+
+  if (isatty(STDIN_FILENO)) {
+    // Only give a message if we are interactive. If connected via pipe, be quiet
+    printf("To Display(%llu):%s\n",strlen(aChangeOrder.getText()), aChangeOrder.getText());
+  }
+
+}
+
+inline void Displayer::setChangeDone(bool isChangeDone) {
+  currChangeOrderDone = isChangeDone;
+  last_change_time = std::time(nullptr);
+}
+
+void Displayer::dotCorners() {
+  last_change_time = std::time(nullptr);
+
+  // clear offline canvas
+  offscreen_canvas->Fill(currChangeOrder.getForegroundColor().r,
+                         currChangeOrder.getForegroundColor().g,
+                         currChangeOrder.getForegroundColor().b);
+
+  rgb_matrix::Color red(255, 0, 0);
+  offscreen_canvas->SetPixel(0,0, red.r, red.g, red.b);
+  offscreen_canvas->SetPixel(0,offscreen_canvas->height(), red.r, red.g, red.b);
+  offscreen_canvas->SetPixel(offscreen_canvas->width(),0, red.r, red.g, red.b);
+  offscreen_canvas->SetPixel(offscreen_canvas->width(),offscreen_canvas->height(), red.r, red.g, red.b);
+
+  // Swap the offscreen_canvas with canvas on vsync, avoids flickering
+  offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
 }
 
 void Displayer::iota() {
@@ -132,7 +186,7 @@ void Displayer::iota() {
         clock_gettime(CLOCK_MONOTONIC, &next_frame);
       } else {
         add_micros(&next_frame, delay_speed_usec);  // TBD could make either Receiver or Displayer a process so slow scroll speed doesn't affect Receiver
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, NULL);
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, nullptr);
       }
     }
 
@@ -171,7 +225,7 @@ void Displayer::iota() {
           if ((scroll_direction < 0 && x <= x_origin) ||
               (scroll_direction > 0 && x >= x_origin)) {
             x = x_origin;
-            currChangeOrderDone = true;
+            setChangeDone();
           }
         }
         else {
@@ -179,14 +233,21 @@ void Displayer::iota() {
           if ((scroll_direction < 0 && y <= y_origin) ||
               (scroll_direction > 0 && y >= y_origin)) {
             y = y_origin;
-            currChangeOrderDone = true;
+            setChangeDone();
           }
         }
       }
     }
     else {
       // Text appeared.  Done.
-      currChangeOrderDone = true;
+      setChangeDone();
+    }
+  }
+  else {
+    // no active change order
+    const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 60;
+    if (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
+      dotCorners();
     }
   }
 }

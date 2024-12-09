@@ -23,9 +23,6 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>  // inet_ntoa
 
 #include <sstream>  // stringstream
 #include <ios>
@@ -33,19 +30,13 @@
 
 #include "TextChangeOrder.h"
 #include "Displayer.h"
-
+#include "Receiver.h"
+#include "MessageFormatter.h"
 
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
   interrupt_received = true;
 }
-
-static const int TCP_PORT_DEFAULT = 21967;
-static const char *LED_ERROR_MESSAGE_SOCKET = "P-ERR-S";
-static const char *LED_ERROR_MESSAGE_BIND = "P-ERR-B";
-static const char *LED_ERROR_MESSAGE_LISTEN = "P-ERR-L";
-static const char *LED_ERROR_MESSAGE_ACCEPT = "P-ERR-A";
-static const char *LED_ERROR_MESSAGE_SOCKET_OPTIONS = "P-ERR-O";
 
 static int usage(const char *progname) {
   fprintf(stderr, "usage: %s [options] [<text>| -i <filename>]\n", progname);
@@ -93,32 +84,6 @@ static void do_pause() {
   sleep(3);
 }
 
-/**
- * Prints a string to the screen, with non-printable characters displayed in hexadecimal form.
- *
- * @param str: The string to be printed.
- */
-static void printStringWithHexadecimal(char* str) {
-  // Iterate through each character in the string.
-  for (int i = 0; str[i] != '\0'; i++) {
-    // Check if the character is printable.
-    if (isprint(str[i])) {
-      printf("%c", str[i]);  // Print the character as is.
-    } else {
-      printf("\\x%02x", (unsigned char) str[i]);  // Print the character in hexadecimal form.
-    }
-  }
-}
-
-static void replaceNonPrintableCharacters(char *str, char repl_char) {
-  // Iterate through each character in the string.
-  for (int i = 0; str[i] != '\0'; i++) {
-    // Check if the character is printable.
-    if (!isprint(str[i])) {
-      str[i] = repl_char;
-    }
-  }
-}
 
 
 
@@ -139,21 +104,14 @@ int main(int argc, char *argv[]) {
   rgb_matrix::Color bg_color(TextChangeOrder::getDefaultBackgroundColor());
 
   const char *bdf_font_file = NULL;
-  const char *EMPTY_STRING = "";
-  std::string line(EMPTY_STRING);      // default empty string displayed
+  std::string line("");      // default empty string displayed
   int x_orig = 0;
   int y_orig = 0;
 
   int letter_spacing = 0;
   float speed = 7.0f;
 
-  int sockfd = -1, newsockfd = -1;  // initialize sockets as not valid
-  socklen_t clilen;
-  const uint32_t TCP_BUFFER_SIZE = 96;
-  char socket_buffer[TCP_BUFFER_SIZE];
-  struct sockaddr_in serv_addr, cli_addr;
-  int port_number = TCP_PORT_DEFAULT;
-
+  int port_number = Receiver::TCP_PORT_DEFAULT;
   int opt;
   while ((opt = getopt(argc, argv, "x:y:f:C:B:t:s:p:Q")) != -1) {  // ':' suffix indicates required argument
     switch (opt) {
@@ -225,70 +183,16 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  Displayer displayer(matrix_options, runtime_opt);
+  Displayer myDisplayer(matrix_options, runtime_opt);
 
-  if (isatty(STDIN_FILENO)) {
-    // Only give a message if we are interactive. If connected via pipe, be quiet
-    printf("Setting up socket...\n");
-  }
+  Receiver myReceiver(port_number);
+  myReceiver.Start();
 
-
-  sockfd = socket(AF_INET, SOCK_STREAM, 0);
-  bool socket_ok = !(sockfd < 0);
-  if (!socket_ok) {
-    fprintf(stderr, "socket() failed\n");
-    line = LED_ERROR_MESSAGE_SOCKET;
-  }
-  const int enable = 1;
-  if (socket_ok &&
-      (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0 ||
-       setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)) {
-    socket_ok = false;
-    fprintf(stderr, "setsockopt() failed\n");
-    line = LED_ERROR_MESSAGE_SOCKET_OPTIONS;
-  }
-
-  bzero((char *) &serv_addr, sizeof(serv_addr));
-  serv_addr.sin_family = AF_INET;
-  serv_addr.sin_addr.s_addr = INADDR_ANY;
-  serv_addr.sin_port = htons(port_number);
-  if (socket_ok &&
-      bind(sockfd, (struct sockaddr *) &serv_addr,
-              sizeof(serv_addr)) < 0) {
-    socket_ok = false;
-    fprintf(stderr, "bind(port %d) failed, errno=%d\n", port_number, errno);
-    line = LED_ERROR_MESSAGE_BIND;
-  }
-  const int MAX_PENDING_CONNECTION = 5;
-  if (socket_ok && listen(sockfd, MAX_PENDING_CONNECTION) < 0) {  // mark socket as passive (listener)
-    socket_ok = false;
-    fprintf(stderr, "listen(port %d, max %d) failed, errno=%d\n", port_number, MAX_PENDING_CONNECTION, errno);
-    line = LED_ERROR_MESSAGE_LISTEN;
-  }
-
-  if (socket_ok && isatty(STDIN_FILENO)) {
-    // Only give a message if we are interactive. If connected via pipe, be quiet
-    printf("Listening on port %d...\n", port_number);
-  }
 
   // initial display of text (we are awake, but not yet connected)
-  displayer.startChangeOrder(TextChangeOrder(line));
-  displayer.iota();
+  myDisplayer.startChangeOrder(TextChangeOrder(line));
+  myDisplayer.iota();
 
-  if (socket_ok) {
-    clilen = sizeof(cli_addr);
-    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-    if (newsockfd < 0) {
-      socket_ok = false;
-      fprintf(stderr, "accept() failed\n");
-      line = LED_ERROR_MESSAGE_ACCEPT;
-    }
-    if (socket_ok && isatty(STDIN_FILENO)) {
-      // Only give a message if we are interactive. If connected via pipe, be quiet
-      printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
-    }
-  }
-  bzero(socket_buffer,TCP_BUFFER_SIZE);
 
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
@@ -297,86 +201,24 @@ int main(int argc, char *argv[]) {
     printf("CTRL-C for exit.\n");
   }
 
-  const char PROTOCOL_END_OF_LINE = '\x0d';
-  std::string tcp_unprocessed(EMPTY_STRING);  // buffer to accumulate unprocessed messages separated by newlines
+  MessageFormatter myFormatter(myDisplayer);
 
   while (!interrupt_received) {
-    int num_read = (socket_ok ? recv(newsockfd, socket_buffer, TCP_BUFFER_SIZE-1, MSG_DONTWAIT) : 0);
-    if (num_read > 0) { // TBD: replace with logic if have new data to display (orig code monitored file for changes)
-
-      socket_buffer[num_read] = '\0';  // ensure end-of-string
-
-      if (isatty(STDIN_FILENO)) {
-        // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Rcvd(len=%d):",num_read);
-        printStringWithHexadecimal(socket_buffer);
-        printf("\n");
-      }
-
-      // accumulate, so we can handle more than one protocol message in tcp buffer, or partial message in buffer
-      tcp_unprocessed.append(socket_buffer, num_read);
+    // if new valid message,  decide what to display
+    if (myReceiver.isPendingMessage()) {
+      const Receiver::RawMessage message = myReceiver.popPendingMessage();
+      myFormatter.handleMessage(message);
     }
 
-    // if end-of-protocol message char is anywhere in the buffer, pull first line
-    std::string::size_type eol_pos = tcp_unprocessed.find_first_of(PROTOCOL_END_OF_LINE);
-    const bool found_line = eol_pos != std::string::npos;
-    if (found_line) {  // found the character
-      if (eol_pos >= TCP_BUFFER_SIZE-1) {
-        fprintf(stderr, "Line too long(%lu) in buffer:%s\n", (unsigned long)eol_pos, tcp_unprocessed.c_str());
-        eol_pos = TCP_BUFFER_SIZE - 2;
-      }
-      const int char_in_line = eol_pos+1;  // less than TCP_BUFFER_SIZE since eol_pos max TCP_BUFFER_SIZE-2;
+    myDisplayer.iota();
 
-      char single_line_buffer[TCP_BUFFER_SIZE];
-      //bzero(single_line_buffer, TCP_BUFFER_SIZE);  // ensure end-of-string character will be present
-      tcp_unprocessed.copy(single_line_buffer, char_in_line, 0);  // copy char from beginning of string, incl eol
-      single_line_buffer[char_in_line] = '\0';  // less than TCP_BUFFER_SIZE since eol_pos max TCP_BUFFER_SIZE-2;
-      tcp_unprocessed.erase(0, char_in_line);                     // remove the characters from the string
-
-      if (isatty(STDIN_FILENO)) {
-        // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Extracted line length %3lu, leaving %3lu unprocessed.\n",
-               (unsigned long)strlen(single_line_buffer),
-               (unsigned long)strlen(tcp_unprocessed.c_str()));
-      }
-
-      // TBD parse message and decide what to display
-      char msg_buffer[TCP_BUFFER_SIZE];
-      bzero(msg_buffer, TCP_BUFFER_SIZE);
-
-      if (strlen(single_line_buffer) >= 24) {  // possible ALGE protocol message
-        // TBD format nicely, such as with 00:01 for first second in running time message
-        strcpy(msg_buffer,single_line_buffer+12);  // start message at possible 1 minute character
-        msg_buffer[8] = '\0';  // end message at possible thousandth-of-second place
-      }
-      else {
-        strcpy(msg_buffer,single_line_buffer);
-      }
-      msg_buffer[11] = '\0';  // ensure message not longer
-      replaceNonPrintableCharacters(msg_buffer, '.');  // replace any non-printable characters
-      line = msg_buffer;  // copy into variable used to display to LED matrix
-      if (isatty(STDIN_FILENO)) {
-        // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Displaying:%s\n",line.c_str());
-      }
-
+    // when no messages can be received, and there is nothing to scroll, delay quite a while before looping
+    if (!myReceiver.isRunning() && !myDisplayer.getChangeOrder().isScrolling() && !myDisplayer.isChangeOrderDone()) {
+      do_pause();
     }
-
-    if (!socket_ok
-      || found_line) {
-      displayer.startChangeOrder(TextChangeOrder(line));
-    }
-
-    displayer.iota();
-
-    // when no messages to wait for and nothing to scroll, delay quite a while before looping
-    if (!socket_ok && !displayer.getChangeOrder().isScrolling() && !displayer.isChangeOrderDone()) do_pause();
   }
 
-  // close sockets
-  // (main loop could be wrapped in try/catch)
-  if (newsockfd >= 0) close(newsockfd);
-  if (sockfd >= 0) close(sockfd);
+  myReceiver.Stop();
 
   return 0;
 }
