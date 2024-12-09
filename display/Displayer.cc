@@ -150,9 +150,9 @@ void Displayer::dotCorners() {
 
   rgb_matrix::Color red(255, 0, 0);
   offscreen_canvas->SetPixel(0,0, red.r, red.g, red.b);
-  offscreen_canvas->SetPixel(0,offscreen_canvas->height(), red.r, red.g, red.b);
-  offscreen_canvas->SetPixel(offscreen_canvas->width(),0, red.r, red.g, red.b);
-  offscreen_canvas->SetPixel(offscreen_canvas->width(),offscreen_canvas->height(), red.r, red.g, red.b);
+  offscreen_canvas->SetPixel(0,offscreen_canvas->height()-1, red.r, red.g, red.b);
+  offscreen_canvas->SetPixel(offscreen_canvas->width()-1,0, red.r, red.g, red.b);
+  offscreen_canvas->SetPixel(offscreen_canvas->width()-1,offscreen_canvas->height()-1, red.r, red.g, red.b);
 
   // Swap the offscreen_canvas with canvas on vsync, avoids flickering
   offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);

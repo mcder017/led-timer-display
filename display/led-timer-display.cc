@@ -16,17 +16,14 @@
 // along with this program.  If not, see <http://gnu.org/licenses/gpl-2.0.txt>
 
 #include <getopt.h>  // for command line options
-#include <signal.h>
+#include <csignal>
 #include <string>
 
 #include <unistd.h>  // for option parsing; sleep
 
-#include <stdio.h>
-#include <sys/types.h>
+#include <cstdio>
 
-#include <sstream>  // stringstream
 #include <ios>
-#include <led-matrix-c.h>
 
 #include "TextChangeOrder.h"
 #include "Displayer.h"
@@ -100,11 +97,11 @@ int main(int argc, char *argv[]) {
     return usage(argv[0]);
   }
 
-  rgb_matrix::Color color(TextChangeOrder::getDefaultForegroundColor());
+  rgb_matrix::Color fg_color(TextChangeOrder::getDefaultForegroundColor());
   rgb_matrix::Color bg_color(TextChangeOrder::getDefaultBackgroundColor());
 
-  const char *bdf_font_file = NULL;
-  std::string line("");      // default empty string displayed
+  std::string bdf_font_file_name; // empty means "use default"
+  std::string line;               // default to empty string displayed
   int x_orig = 0;
   int y_orig = 0;
 
@@ -118,10 +115,10 @@ int main(int argc, char *argv[]) {
     case 's': speed = atof(optarg); break;
     case 'x': x_orig = atoi(optarg); break;
     case 'y': y_orig = atoi(optarg); break;
-    case 'f': bdf_font_file = strdup(optarg); break;
+    case 'f': bdf_font_file_name = optarg; break;
     case 't': letter_spacing = atoi(optarg); break;
     case 'C':
-      if (!parseColor(&color, optarg)) {
+      if (!parseColor(&fg_color, optarg)) {
         fprintf(stderr, "Invalid color spec: %s\n", optarg);
         return usage(argv[0]);
       }
@@ -142,12 +139,12 @@ int main(int argc, char *argv[]) {
       runtime_opt.gpio_slowdown = 2;
       matrix_options.hardware_mapping = "adafruit-hat-pwm";
 
-      bdf_font_file = NULL;  // use default 10x20 font, loaded below
-      color.setColor(255,0,0);  // red
+      bdf_font_file_name = "";  // use default 10x20 font, loaded below
+      fg_color.setColor(255,0,0);  // red
       letter_spacing = -1;
       y_orig = -2;
 
-      speed = (float)0;
+      speed = 0;
       break;
     default:
       return usage(argv[0]);
@@ -159,18 +156,9 @@ int main(int argc, char *argv[]) {
     line.append(argv[i]).append(" ");
   }
 
-  /*
-  if (line.empty()) {
-    fprintf(stderr, "Add the text you want to print on the command-line or -i for input file.\n");
-    return usage(argv[0]);
-  }
-  */
-
-  /*
-   * Load font. If using a file rather than the default, it needs to be a filename with a bdf bitmap font.
-   */
+  // Load font. If using a file rather than the default, it needs to be a filename with a bdf bitmap font.
   rgb_matrix::Font* fontPtr = nullptr;
-  if (bdf_font_file == nullptr) {
+  if (bdf_font_file_name.empty()) {
     // read built-in default font
     fontPtr = SpacedFont::getDefaultFontPtr();
     if (fontPtr == nullptr) {
@@ -178,12 +166,17 @@ int main(int argc, char *argv[]) {
       return 1;
     }
   }
-  else if (!fontPtr->LoadFont(bdf_font_file)) {
-    fprintf(stderr, "Couldn't load font '%s'\n", bdf_font_file);
-    return 1;
+  else {
+    fontPtr = new rgb_matrix::Font();
+    if (!fontPtr->LoadFont(bdf_font_file_name.c_str())) {
+      fprintf(stderr, "Couldn't load font '%s'\n", bdf_font_file_name.c_str());
+      return 1;
+    }
   }
 
   Displayer myDisplayer(matrix_options, runtime_opt);
+  myDisplayer.setXOrigin(x_orig);
+  myDisplayer.setYOrigin(y_orig);
 
   Receiver myReceiver(port_number);
   myReceiver.Start();
@@ -201,7 +194,7 @@ int main(int argc, char *argv[]) {
     printf("CTRL-C for exit.\n");
   }
 
-  MessageFormatter myFormatter(myDisplayer);
+  MessageFormatter myFormatter(myDisplayer, *fontPtr, letter_spacing);
 
   while (!interrupt_received) {
     // if new valid message,  decide what to display

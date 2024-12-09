@@ -11,7 +11,7 @@
 #include <deque>
 #include <chrono>
 #include <utility>
-
+#include <netinet/in.h>
 
 class Receiver : public rgb_matrix::Thread {
 public:
@@ -71,7 +71,7 @@ public:
      static std::string nonprintableToHexadecimal(const char* str);
 
 protected:
-     constexpr char PROTOCOL_END_OF_LINE = '\x0d';
+     static constexpr char PROTOCOL_END_OF_LINE = '\x0d';
 
      inline bool running() {
           rgb_matrix::MutexLock l(&mutex_);
