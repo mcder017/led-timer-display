@@ -278,7 +278,8 @@ void Displayer::iota() {
   else {
     // no active change order
     const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 30;
-    if (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
+    if (currChangeOrder.getString().empty()
+        && std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
       dotCorners();
     }
   }
