@@ -29,22 +29,22 @@ rgb_matrix::Font* SpacedFont::defaultFontPtr = nullptr;
 
 TextChangeOrder::TextChangeOrder(const char* aText)
     :
-    text(aText),
     spacedFont(),
     foregroundColor(getDefaultForegroundColor()),
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
-    velocityIsHorizontal(true)
+    velocityIsHorizontal(true),
+    text(aText)
     {}
 
 TextChangeOrder::TextChangeOrder(const std::string& aString)
     :
-    text(aString.c_str()),
     spacedFont(),
     foregroundColor(getDefaultForegroundColor()),
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
-    velocityIsHorizontal(true)
+    velocityIsHorizontal(true),
+    text(aString.c_str())
 {}
 
 rgb_matrix::Color TextChangeOrder::getDefaultForegroundColor() {
