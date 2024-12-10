@@ -97,8 +97,8 @@ int main(int argc, char *argv[]) {
     return usage(argv[0]);
   }
 
-  rgb_matrix::Color fg_color(TextChangeOrder::getDefaultForegroundColor());
-  rgb_matrix::Color bg_color(TextChangeOrder::getDefaultBackgroundColor());
+  rgb_matrix::Color fg_color = TextChangeOrder::getDefaultForegroundColor();
+  rgb_matrix::Color bg_color = TextChangeOrder::getDefaultBackgroundColor();
 
   std::string bdf_font_file_name; // empty means "use default"
   std::string line;               // default to empty string displayed

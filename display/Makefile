@@ -21,7 +21,7 @@ all : $(BINARIES)
 $(RGB_LIBRARY): FORCE
 	$(MAKE) -C $(RGB_LIBDIR)
 
-led-timer-display : led-timer-display.o
+led-timer-display : led-timer-display.o Displayer.o MessageFormatter.o Receiver.o TextChangeOrder.o
 
 # All the binaries that have the same name as the object file.q
 #% : %.o $(RGB_LIBRARY)
