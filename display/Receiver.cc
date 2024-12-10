@@ -16,7 +16,6 @@
 static auto LED_ERROR_MESSAGE_SOCKET = "P-ERR-S";
 static auto LED_ERROR_MESSAGE_BIND = "P-ERR-B";
 static auto LED_ERROR_MESSAGE_LISTEN = "P-ERR-L";
-static auto LED_ERROR_MESSAGE_ACCEPT = "P-ERR-A";
 static auto LED_ERROR_MESSAGE_SOCKET_OPTIONS = "P-ERR-O";
 
 Receiver::Receiver() : Receiver(TCP_PORT_DEFAULT) {}
@@ -90,14 +89,6 @@ void Receiver::checkAndAcceptConnection() {
     if (newsockfd < 0) {
         clilen = sizeof(cli_addr);
         newsockfd = accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_NONBLOCK);
-        /*
-        if (newsockfd < 0) {
-            fprintf(stderr, "accept() failed\n");
-            queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_ACCEPT));
-            Stop();
-            return;
-        }
-        */
         if (newsockfd >= 0 && isatty(STDIN_FILENO)) {
             // Only give a message if we are interactive. If connected via pipe, be quiet
             printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
