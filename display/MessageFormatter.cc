@@ -47,10 +47,10 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
   const size_t TIME_FIELD_POS = 8;    // 9th char of protocol = string index 8
   const size_t TIME_FIELD_LENGTH = 12;  // hh:mm:ss.zht but leading or trailing part may be whitespace
   const size_t BOARD_IDENTIFIER_POS = 0;  // 1st char of protocol = string index 0
-  const bool isBoardIdentifier = message.data.at(BOARD_IDENTIFIER_POS);
   const std::string BOARD_CHAR_STRING = "ABCDEFGHIJ";
-  const int field_pos_shift =   // for specific alge protocol messages, time field starts at col 10 (string location 9)
-    (BOARD_CHAR_STRING.find(message.data.at(BOARD_IDENTIFIER_POS)) != std::string::npos) ? 1 : 0;
+  const bool isBoardIdentifier = BOARD_CHAR_STRING.find(message.data.at(BOARD_IDENTIFIER_POS)) != std::string::npos;
+  const int field_pos_shift = isBoardIdentifier ? 1 : 0; // certain protocol messages have time field at col 10 (string location 9)
+
   std::string timeField = message.data.substr(TIME_FIELD_POS+field_pos_shift, TIME_FIELD_LENGTH);
   timeField = trimWhitespace(timeField);
 
