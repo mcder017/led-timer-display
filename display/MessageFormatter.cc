@@ -12,7 +12,7 @@ static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
 MessageFormatter::MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFontPtr, int aLetterSpacing,
                                    rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
                                    float velocity, bool scroll_horizontal, bool scroll_once)
-      : myDisplayer(aDisplayer), defaultVelocity(velocity), default_horizontal(scroll_once), default_once(scroll_once) {
+      : myDisplayer(aDisplayer), defaultVelocity(velocity), default_horizontal(scroll_horizontal), default_once(scroll_once) {
 
     defaultSpacedFont.fontPtr = aFontPtr;
     defaultSpacedFont.letterSpacing = aLetterSpacing;
