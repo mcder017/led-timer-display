@@ -27,7 +27,7 @@ void MessageFormatter::handleMessage(Receiver::RawMessage message) {
       break;
 
     case Receiver::Protocol::SIMPLE_TEXT:
-      handleInternalErrMessage(message);
+      handleSimpleTextMessage(message);
       break;
 
     default:
@@ -93,7 +93,13 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
   }
 }
 
-void MessageFormatter::handleInternalErrMessage(Receiver::RawMessage message) {
-  // forward the message string directly to the display
-  myDisplayer.startChangeOrder(TextChangeOrder(defaultSpacedFont, message.data.c_str()));
+void MessageFormatter::handleSimpleTextMessage(Receiver::RawMessage message) {
+  // forward the message string directly to the display, using default entrance parameters
+
+  TextChangeOrder newOrder(defaultSpacedFont, message.data.c_str());
+  newOrder.setVelocity(defaultVelocity);
+  newOrder.setForegroundColor(defaultForegroundColor);
+  newOrder.setBackgroundColor(defaultBackgroundColor);
+  myDisplayer.startChangeOrder(newOrder);
+
 }

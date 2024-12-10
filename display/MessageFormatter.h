@@ -25,7 +25,7 @@ private:
   float defaultVelocity;
 
   void handleAlgeMessage(Receiver::RawMessage message);
-  void handleInternalErrMessage(Receiver::RawMessage message);
+  void handleSimpleTextMessage(Receiver::RawMessage message);
 };
 
 
