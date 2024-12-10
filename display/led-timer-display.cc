@@ -19,7 +19,7 @@
 #include <csignal>
 #include <string>
 
-#include <unistd.h>  // for option parsing; sleep
+#include <unistd.h>  // for io on linux, also option parsing; sleep
 
 #include <cstdio>
 

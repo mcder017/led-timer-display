@@ -4,13 +4,14 @@
 
 #include "Displayer.h"
 
-#include <io.h>
+#include <unistd.h>  // for io on linux, also option parsing; sleep
 
 #include "led-matrix.h"
 #include "graphics.h"
 
 #include <ctime>    // for monitoring clock for steady scrolling
 #include <cmath>    // for fabs
+#include <string.h>
 
 #define EXTREME_COLORS_PWM_BITS 1
 
@@ -90,7 +91,7 @@ void Displayer::updatePWMBits() {
 
 static std::string replaceNonPrintableCharacters(std::string str, const char repl_char) {
   // Iterate through each character in the string.
-  for (int i = 0; i < str.length(); i++) {
+  for (unsigned i = 0; i < str.length(); i++) {
     // Check if the character is printable.
     if (!isprint(str[i])) {
       if (isatty(STDIN_FILENO)) {

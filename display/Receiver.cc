@@ -9,7 +9,7 @@
 #include <arpa/inet.h>  // inet_ntoa
 #include <cstdio>
 #include <ios>
-#include <io.h>
+#include <unistd.h>  // for io on linux, also option parsing; sleep
 
 static auto LED_ERROR_MESSAGE_SOCKET = "P-ERR-S";
 static auto LED_ERROR_MESSAGE_BIND = "P-ERR-B";
