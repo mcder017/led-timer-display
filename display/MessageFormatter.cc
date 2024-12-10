@@ -36,6 +36,9 @@ void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
 }
 
 void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
+
+  // parse fields from the message
+
   constexpr size_t BIB_FIELD_LENGTH = 3;
   std::string bibField = message.data.substr(0, BIB_FIELD_LENGTH);  // first three char may be bib number, or blank
   bibField.erase(std::remove_if(bibField.begin(), bibField.end(), ::isspace), bibField.end());  // may now be empty string
@@ -58,6 +61,8 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   constexpr size_t RANK_FIELD_LENGTH = 2;
   std::string rankField = message.data.substr(RANK_FIELD_POS, RANK_FIELD_LENGTH);  // may be rank number, or blank
   rankField.erase(std::remove_if(rankField.begin(), rankField.end(), ::isspace), rankField.end());
+
+  // format the individual fields
 
   // while bib has a leading zero that is not the only character, remove the zero
   while (bibField.at(0) == '0' && bibField.length() > 1) {
@@ -94,14 +99,16 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     timeField = timeBuffer;
   }
 
+  // assemble the message to display
+
   if (isRunningTime) {
     const std::string text = "[ " + timeField + " ]";
     myDisplayer.startChangeOrder(buildDefaultChangeOrder(text.c_str()));
   }
   else {
     // combine bib, time, and rank if provided
-    const std::string text = (bibField.empty() ? "" : bibField + "=")
-                             + timeField
+    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
+                             timeField
                              + (rankField.empty() ? "" : "(" + rankField + ")");
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
