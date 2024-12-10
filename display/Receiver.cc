@@ -86,7 +86,7 @@ void Receiver::setupSocket() {
 
 }
 
-void Receiver::checkAndAcceptConnection() const {
+void Receiver::checkAndAcceptConnection() {
     if (newsockfd < 0) {
         clilen = sizeof(cli_addr);
         newsockfd = accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_NONBLOCK);
