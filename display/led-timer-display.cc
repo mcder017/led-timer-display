@@ -92,11 +92,14 @@ static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver) {
       addr_message.setVelocity(-5.0);
       addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
       addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
+      const int origY = myDisplayer.getYOrigin();
+      myDisplayer.setYOrigin(0);  // ensure ok for small font
 
       myDisplayer.startChangeOrder(addr_message);
       while (!myDisplayer.isChangeOrderDone()) {
         myDisplayer.iota();
       }
+      myDisplayer.setYOrigin(origY);  // restore config
     }
   }
 }
