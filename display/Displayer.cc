@@ -296,6 +296,7 @@ void Displayer::iota() {
 
         default:
           //no action
+          break;
       }
     }
     else {
