@@ -89,7 +89,7 @@ static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver) {
 
     if (!local_addresses.empty()) {
       TextChangeOrder addr_message(smallSpacedFont, local_addresses.c_str());
-      addr_message.setVelocity(-5.0);
+      addr_message.setVelocity(-7.0);
       addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
       addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
       const int origY = myDisplayer.getYOrigin();
