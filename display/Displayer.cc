@@ -165,7 +165,7 @@ inline void Displayer::setChangeDone(bool isChangeDone) {
   currChangeOrderDone = isChangeDone;
   last_change_time = std::time(nullptr);
 
-  if (isatty(STDIN_FILENO)) {
+  if (currChangeOrderDone && isatty(STDIN_FILENO)) {
     // Only give a message if we are interactive. If connected via pipe, be quiet
     printf("Displayed:%s\n",currChangeOrder.getText());
   }
