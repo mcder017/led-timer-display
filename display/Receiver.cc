@@ -215,17 +215,21 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
                 }
             }
 
-            // dot can be either 3rd char after a colon,
+            // dot can be either in one of two time-related positions,
             // or in one of two fixed positions as indicator this is a "running" message
             size_t dotPos = msg_non_eol.find_last_of('.');
             if (dotPos != std::string::npos) {
                 constexpr size_t RUNNING_FLAG_POS1 = 3; // protocol index 4 is string index 3
                 constexpr size_t RUNNING_FLAG_POS2 = 4; // protocol index 5 is string index 4
 
-                if (dotPos < RUNNING_FLAG_POS1
-                    || (dotPos != RUNNING_FLAG_POS1
-                        && dotPos != RUNNING_FLAG_POS2
-                        && single_line_buffer[dotPos-3] != ':')) {
+                constexpr size_t RUNNING_FLAG_POS3 = 16; // protocol index 17 is string index 16
+                constexpr size_t RUNNING_FLAG_POS4 = 17; // protocol index 18 is string index 17
+
+                if (dotPos != RUNNING_FLAG_POS1
+                    && dotPos != RUNNING_FLAG_POS2
+                    && dotPos != RUNNING_FLAG_POS3
+                    && dotPos != RUNNING_FLAG_POS4) {
+
                     possible_alge_message = false;
                 }
             }
