@@ -71,6 +71,8 @@ public:
      void setClearOnUnrecognizedMessage(bool doClear) {clearDisplayOnUnrecognizedMessage = doClear;}
      [[nodiscard]] bool isClearOnUnrecognizedMessage() const {return clearDisplayOnUnrecognizedMessage;}
 
+     std::string getLocalAddresses();
+
      static std::string nonprintableToHexadecimal(const char* str);
 
 protected:

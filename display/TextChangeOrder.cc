@@ -35,7 +35,7 @@ TextChangeOrder::TextChangeOrder()
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
-    velocityIsSingleScroll(true),
+    velocityScrollType(SINGLE_ONOFF),
     text()
 {}
 
@@ -47,7 +47,7 @@ TextChangeOrder::TextChangeOrder(const char* aText)
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
-    velocityIsSingleScroll(true),
+    velocityScrollType(SINGLE_ONOFF),
     text(aText)
     {}
 
@@ -58,7 +58,7 @@ TextChangeOrder::TextChangeOrder(std::string  aString)
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
-    velocityIsSingleScroll(true),
+    velocityScrollType(SINGLE_ONOFF),
     text(std::move(aString))
 {}
 
@@ -69,7 +69,7 @@ TextChangeOrder::TextChangeOrder(SpacedFont aSpacedFont, const char* aText)
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
-    velocityIsSingleScroll(true),
+    velocityScrollType(SINGLE_ONOFF),
     text(aText)
 {}
 

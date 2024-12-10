@@ -13,7 +13,7 @@ class MessageFormatter {
 public:
   MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFontPtr, int aLetterSpacing,
                     rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
-                    float velocity, bool scroll_horizontal, bool scroll_once);
+                    float velocity, bool scroll_horizontal, TextChangeOrder::ScrollType scroll_type);
 
   void handleMessage(const Receiver::RawMessage& message);
 
@@ -27,11 +27,11 @@ private:
   rgb_matrix::Color defaultBackgroundColor;
   float defaultVelocity;
   bool default_horizontal;
-  bool default_once;
+  TextChangeOrder::ScrollType default_scroll_type;
 
   void handleAlgeMessage(const Receiver::RawMessage& message);
   void handleSimpleTextMessage(const Receiver::RawMessage& message);
-  TextChangeOrder buildDefaultChangeOrder(const char* text);
+  TextChangeOrder buildDefaultChangeOrder(const char* text) const;
 };
 
 

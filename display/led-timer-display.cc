@@ -30,6 +30,8 @@
 #include "Receiver.h"
 #include "MessageFormatter.h"
 
+#include "bdf-5x7-local.h"
+
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
   interrupt_received = true;
@@ -43,19 +45,14 @@ static int usage(const char *progname) {
   fprintf(stderr,
           "\t-f <font-file>    : Path to *.bdf-font to be used.\n"
           "\t-s <speed>        : Approximate letters per second. \n"
-          "\t                    Positive: scroll right to left; Negative: scroll left to right\n"
-          "\t                    (Zero for no scrolling)\n"
-          "\t-l <loop-count>   : Number of loops through the text. "
-          "-1 for endless (default)\n"
-          "\t-b <on-time>,<off-time>  : Blink while scrolling. Keep "
-          "on and off for these amount of scrolled pixels.\n"
+          "\t                    Positive: scroll left to right, or up to down. Negative: R->L, D->U\n"
+          "\t                    Zero for no scrolling.\n"
           "\t-x <x-origin>     : Shift X-Origin of displaying text (Default: 0)\n"
           "\t-y <y-origin>     : Shift Y-Origin of displaying text (Default: 0)\n"
           "\t-t <track-spacing>: Spacing pixels between letters (Default: 0)\n"
           "\n"
           "\t-C <r,g,b>        : Text Color. Default 255,255,255 (white)\n"
           "\t-B <r,g,b>        : Background-Color. Default 0,0,0 (black)\n"
-          "\t-O <r,g,b>        : Outline-Color, e.g. to increase contrast.\n"
           );
   fprintf(stderr, "\nGeneral LED matrix options:\n");
   rgb_matrix::PrintMatrixFlags(stderr);
@@ -82,6 +79,28 @@ static void do_pause() {
   sleep(3);
 }
 
+static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver) {
+  rgb_matrix::Font smallFont;
+  if (smallFont.ReadFont(BDF_5X7_STRING)) {
+    SpacedFont smallSpacedFont;
+    smallSpacedFont.fontPtr = &smallFont;
+
+    std::string local_addresses = myReceiver.getLocalAddresses();
+
+    if (!local_addresses.empty()) {
+      TextChangeOrder addr_message(smallSpacedFont, local_addresses.c_str());
+      addr_message.setVelocity(-5.0);
+      addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
+      addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
+
+      myDisplayer.startChangeOrder(addr_message);
+      while (!myDisplayer.isChangeOrderDone()) {
+        myDisplayer.iota();
+      }
+    }
+  }
+}
+
 int main(int argc, char *argv[]) {
   rgb_matrix::RGBMatrix::Options matrix_options;
   rgb_matrix::RuntimeOptions runtime_opt;
@@ -106,7 +125,7 @@ int main(int argc, char *argv[]) {
   int letter_spacing = 0;
   float speed = 7.0f;
   bool set_horizontal_scroll = true;
-  bool set_single_scroll = true;
+  TextChangeOrder::ScrollType set_scroll_type = TextChangeOrder::SINGLE_ONOFF;
 
   int port_number = Receiver::TCP_PORT_DEFAULT;
   int opt;
@@ -118,7 +137,12 @@ int main(int argc, char *argv[]) {
     case 'f': bdf_font_file_name = optarg; break;
     case 't': letter_spacing = atoi(optarg); break;
     case 'v': set_horizontal_scroll = atoi(optarg) == 0; break;
-    case 'i': set_single_scroll = atoi(optarg) == 0; break;
+    case 'i':
+      if (atoi(optarg) == TextChangeOrder::SINGLE_ONOFF) set_scroll_type = TextChangeOrder::SINGLE_ONOFF;
+      else if (atoi(optarg) == TextChangeOrder::SINGLE_ON) set_scroll_type = TextChangeOrder::SINGLE_ON;
+      else if (atoi(optarg) == TextChangeOrder::CONTINUOUS) set_scroll_type = TextChangeOrder::CONTINUOUS;
+      else fprintf(stderr, "Invalid scroll type spec: %s\n", optarg);
+      break;
     case 'C':
       if (!parseColor(&fg_color, optarg)) {
         fprintf(stderr, "Invalid color spec: %s\n", optarg);
@@ -147,7 +171,7 @@ int main(int argc, char *argv[]) {
       y_orig = -2;
 
       set_horizontal_scroll = true;
-      set_single_scroll = true;
+      set_scroll_type = TextChangeOrder::SINGLE_ONOFF;
 
       speed = 0;
       break;
@@ -186,10 +210,14 @@ int main(int argc, char *argv[]) {
   Receiver myReceiver(port_number);
   myReceiver.Start();
 
-  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed,
-                              set_horizontal_scroll, set_single_scroll);
 
-  // initial display of text (we are awake, but perhaps not yet connected)
+  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed,
+                              set_horizontal_scroll, set_scroll_type);
+
+  // initial display of address connection text (we are awake, but perhaps not yet connected)
+  showLocalAddresses(myDisplayer, myReceiver);
+
+  // now show text from command line options
   myFormatter.handleMessage(Receiver::RawMessage(Receiver::Protocol::SIMPLE_TEXT, line));
 
   signal(SIGTERM, InterruptHandler);

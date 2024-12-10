@@ -11,8 +11,8 @@ static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
 
 MessageFormatter::MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFontPtr, int aLetterSpacing,
                                    rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
-                                   float velocity, bool scroll_horizontal, bool scroll_once)
-      : myDisplayer(aDisplayer), defaultVelocity(velocity), default_horizontal(scroll_horizontal), default_once(scroll_once) {
+                                   float velocity, bool scroll_horizontal, TextChangeOrder::ScrollType scroll_type)
+      : myDisplayer(aDisplayer), defaultVelocity(velocity), default_horizontal(scroll_horizontal), default_scroll_type(scroll_type) {
 
     defaultSpacedFont.fontPtr = aFontPtr;
     defaultSpacedFont.letterSpacing = aLetterSpacing;
@@ -132,13 +132,13 @@ void MessageFormatter::handleSimpleTextMessage(const Receiver::RawMessage& messa
 
 }
 
-TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) {
+TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) const {
   TextChangeOrder newOrder(defaultSpacedFont, text);
   newOrder.setVelocity(defaultVelocity);
   newOrder.setForegroundColor(defaultForegroundColor);
   newOrder.setBackgroundColor(defaultBackgroundColor);
   newOrder.setVelocityIsHorizontal(default_horizontal);
-  newOrder.setVelocityIsSingleScroll(default_once);
+  newOrder.setVelocityScrollType(default_scroll_type);
   return newOrder;
 }
 

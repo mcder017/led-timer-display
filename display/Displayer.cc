@@ -124,7 +124,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
                          ? 0
                          : static_cast<int>(1000000.0 / speed / currChangeOrder.getSpacedFont().fontPtr->CharacterWidth('W'));
 
-  if (currChangeOrder.isScrolling()) {
+  if (currChangeOrder.isScrolling()) {  // velocity not zero
     if (currChangeOrder.getVelocityIsHorizontal()) {
       if (scroll_direction > 0) {
         // get width of text
@@ -235,40 +235,67 @@ void Displayer::iota() {
         y += scroll_direction;
       }
 
-      // handle wrapping
-      if (currChangeOrder.getVelocityIsHorizontal()) {
-        // wrap while scrolling horizontal
-        if ((scroll_direction < 0 && x + length < 0) ||
-           (scroll_direction > 0 && x > canvas->width())) {
-          x = x_origin + ((scroll_direction > 0) ? -length : canvas->width());
-        }
-      }
-      else {
-        // wrap while scrolling vertical
-        if ((scroll_direction < 0 && y + currFont.baseline() < 0) ||
-           (scroll_direction > 0 && y > canvas->height())) {
-          y = y_origin + ((scroll_direction > 0) ? -currFont.height() : canvas->height());
-        }
-      }
 
       // handle single scroll (non-continuous scrolling)
-      if (currChangeOrder.getVelocityIsSingleScroll()) {
-        if (currChangeOrder.getVelocityIsHorizontal()) {
-          // stop horizontal scroll when reach origin position
-          if ((scroll_direction < 0 && x <= x_origin) ||
-              (scroll_direction > 0 && x >= x_origin)) {
-            x = x_origin;
-            setChangeDone();
+      switch (currChangeOrder.getVelocityScrollType()) {
+        case TextChangeOrder::CONTINUOUS:
+          // handle wrapping
+          if (currChangeOrder.getVelocityIsHorizontal()) {
+            // wrap while scrolling horizontal
+            if ((scroll_direction < 0 && x + length < 0) ||
+               (scroll_direction > 0 && x > canvas->width())) {
+              x = x_origin + ((scroll_direction > 0) ? -length : canvas->width());
+            }
           }
-        }
-        else {
-          // stop vertical scroll when reach origin position
-          if ((scroll_direction < 0 && y <= y_origin) ||
-              (scroll_direction > 0 && y >= y_origin)) {
-            y = y_origin;
-            setChangeDone();
+          else {
+            // wrap while scrolling vertical
+            if ((scroll_direction < 0 && y + currFont.baseline() < 0) ||
+               (scroll_direction > 0 && y > canvas->height())) {
+              y = y_origin + ((scroll_direction > 0) ? -currFont.height() : canvas->height());
+            }
           }
-        }
+          break;
+
+        case TextChangeOrder::SINGLE_ON:
+          if (currChangeOrder.getVelocityIsHorizontal()) {
+            // stop horizontal scroll when reach origin position
+            if ((scroll_direction < 0 && x <= x_origin) ||
+                (scroll_direction > 0 && x >= x_origin)) {
+              x = x_origin;
+              setChangeDone();
+            }
+          }
+          else {
+            // stop vertical scroll when reach origin position
+            if ((scroll_direction < 0 && y <= y_origin) ||
+                (scroll_direction > 0 && y >= y_origin)) {
+              y = y_origin;
+              setChangeDone();
+            }
+          }
+          break;
+
+        case TextChangeOrder::SINGLE_ONOFF:
+          if (currChangeOrder.getVelocityIsHorizontal()) {
+            // stop horizontal scroll when exit far side
+            if ((scroll_direction < 0 && x <= -length) ||
+                (scroll_direction > 0 && x >= canvas->width())) {
+              x = canvas->width()+1;  // off screen
+              setChangeDone();
+            }
+          }
+          else {
+            // stop vertical scroll when reach origin position
+            if ((scroll_direction < 0 && y <= -currFont.height()) ||
+                (scroll_direction > 0 && y >= canvas->height())) {
+              y = canvas->height()+1; // off screen
+              setChangeDone();
+            }
+          }
+        break;
+
+        default:
+          //no action
       }
     }
     else {

@@ -25,6 +25,13 @@ struct SpacedFont {
 
 class TextChangeOrder {
     public:
+    enum ScrollType {   // when velocity is not zero...
+
+            CONTINUOUS,    // 0: scroll forever. start off one side, end off the other side, restart
+            SINGLE_ON,     // 1: start off one side, end when at origin position on screen
+            SINGLE_ONOFF   // 2: start off one side, end off the other side
+    };
+
     TextChangeOrder();  // empty text
     explicit TextChangeOrder(const char* aText);   // default font, spacing,  colors, speed
     explicit TextChangeOrder(std::string  aString);   // default font, spacing, colors, speed
@@ -51,8 +58,9 @@ class TextChangeOrder {
     void setVelocityIsHorizontal(bool aVelocityIsHorizontal) {velocityIsHorizontal = aVelocityIsHorizontal;}
     [[nodiscard]] bool getVelocityIsHorizontal() const { return velocityIsHorizontal; }
 
-    void setVelocityIsSingleScroll(bool avelocityIsSingleScroll) {velocityIsSingleScroll = avelocityIsSingleScroll;}
-    [[nodiscard]] bool getVelocityIsSingleScroll() const { return velocityIsSingleScroll; }
+
+    void setVelocityScrollType(ScrollType aVelocityScrollType) {velocityScrollType = aVelocityScrollType;}
+    [[nodiscard]] ScrollType getVelocityScrollType() const { return velocityScrollType; }
 
     static rgb_matrix::Color getDefaultForegroundColor();
     static rgb_matrix::Color getDefaultBackgroundColor();
@@ -63,7 +71,7 @@ class TextChangeOrder {
     rgb_matrix::Color backgroundColor;  // default black
     float velocity;                     // default is 0.0=no motion.  1.0=approx one character width per second (left=positive)
     bool velocityIsHorizontal;          // default is true for horizontal scrolling. Set false for vertical
-    bool velocityIsSingleScroll;        // default is true to stop after scrolling on
+    ScrollType velocityScrollType;      // default is 2 to scroll across and off screen, once
 
     std::string text;
 
