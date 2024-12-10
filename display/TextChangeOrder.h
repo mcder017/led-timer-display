@@ -27,7 +27,7 @@ class TextChangeOrder {
     public:
     TextChangeOrder();  // empty text
     explicit TextChangeOrder(const char* aText);   // default font, spacing,  colors, speed
-    explicit TextChangeOrder(const std::string& aString);   // default font, spacing, colors, speed
+    explicit TextChangeOrder(std::string  aString);   // default font, spacing, colors, speed
     TextChangeOrder(SpacedFont aSpacedFont, const char* aText);   // default colors
 
     void setSpacedFont(const SpacedFont& aFont) {spacedFont = aFont;}

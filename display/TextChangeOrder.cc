@@ -7,6 +7,7 @@
 
 #include "graphics.h"
 #include <cmath>    // for fabs
+#include <utility>
 
 rgb_matrix::Font* SpacedFont::getDefaultFontPtr() {
     if (defaultFontPtr == nullptr) {
@@ -50,7 +51,7 @@ TextChangeOrder::TextChangeOrder(const char* aText)
     text(aText)
     {}
 
-TextChangeOrder::TextChangeOrder(const std::string& aString)
+TextChangeOrder::TextChangeOrder(std::string  aString)
     :
     spacedFont(),
     foregroundColor(getDefaultForegroundColor()),
@@ -58,7 +59,7 @@ TextChangeOrder::TextChangeOrder(const std::string& aString)
     velocity(0.0f),
     velocityIsHorizontal(true),
     velocityIsSingleScroll(true),
-    text(aString)
+    text(std::move(aString))
 {}
 
 TextChangeOrder::TextChangeOrder(SpacedFont aSpacedFont, const char* aText)
@@ -82,5 +83,5 @@ rgb_matrix::Color TextChangeOrder::getDefaultBackgroundColor() {
 
 bool TextChangeOrder::isScrolling() const {
   const float eps = 0.0001f;
-  return fabs(velocity) > eps;
+  return fabs((double)velocity) > eps;
 }
