@@ -5,6 +5,7 @@
 #include "TextChangeOrder.h"
 #include "bdf-10x20-local.h"
 
+#include "graphics.h"
 #include <math.h>    // for fabs
 
 rgb_matrix::Font* SpacedFont::getDefaultFontPtr() {
