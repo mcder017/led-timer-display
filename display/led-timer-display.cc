@@ -82,9 +82,6 @@ static void do_pause() {
   sleep(3);
 }
 
-
-
-
 int main(int argc, char *argv[]) {
   rgb_matrix::RGBMatrix::Options matrix_options;
   rgb_matrix::RuntimeOptions runtime_opt;
@@ -182,11 +179,10 @@ int main(int argc, char *argv[]) {
   Receiver myReceiver(port_number);
   myReceiver.Start();
 
+  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed);
 
-  // initial display of text (we are awake, but not yet connected)
-  myDisplayer.startChangeOrder(TextChangeOrder(line));
-  myDisplayer.iota();
-
+  // initial display of text (we are awake, but perhaps not yet connected)
+  myFormatter.handleMessage(Receiver::RawMessage(Receiver::Protocol::SIMPLE_TEXT, line));
 
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
@@ -194,8 +190,6 @@ int main(int argc, char *argv[]) {
     // Only give a message if we are interactive. If connected via pipe, be quiet
     printf("Press CTRL-C for exit.\n");
   }
-
-  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed);
 
   while (!interrupt_received) {
     // if new valid message,  decide what to display
@@ -219,5 +213,6 @@ int main(int argc, char *argv[]) {
 
   myReceiver.Stop();
 
+  fprintf(stderr,"Exiting\n");
   return 0;
 }

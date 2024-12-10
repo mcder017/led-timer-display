@@ -19,7 +19,7 @@ public:
 
      static constexpr uint32_t PROTOCOL_MESSAGE_MAX_LENGTH = 96;   // longest valid protocol message, including end-of-line
      enum Protocol {ALGE_DLINE,    // see "Alge timing manual for D-LINE / D-SAT"
-                    INTERNAL_ERR,  // data is short string to display on board
+                    SIMPLE_TEXT,  // data is short string to display on board
                     UNKNOWN};
      struct RawMessage {
           const Protocol protocol;

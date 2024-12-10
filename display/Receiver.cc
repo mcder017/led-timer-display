@@ -51,7 +51,7 @@ void Receiver::setupSocket() {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         fprintf(stderr, "socket() failed\n");
-        queueReceivedMessage(RawMessage(INTERNAL_ERR, LED_ERROR_MESSAGE_SOCKET));
+        queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_SOCKET));
         Stop();
         return;
     }
@@ -59,14 +59,14 @@ void Receiver::setupSocket() {
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0 ||
         setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0) {
         fprintf(stderr, "setsockopt() failed\n");
-        queueReceivedMessage(RawMessage(INTERNAL_ERR, LED_ERROR_MESSAGE_SOCKET_OPTIONS));
+        queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_SOCKET_OPTIONS));
         Stop();
         return;
     }
 
     if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0) {
         fprintf(stderr, "bind(port %d) failed, errno=%d\n", port_number, errno);
-        queueReceivedMessage(RawMessage(INTERNAL_ERR, LED_ERROR_MESSAGE_BIND));
+        queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_BIND));
         Stop();
         return;
     }
@@ -74,7 +74,7 @@ void Receiver::setupSocket() {
     const int MAX_PENDING_CONNECTION = 5;
     if (listen(sockfd, MAX_PENDING_CONNECTION) < 0) {  // mark socket as passive (listener)
         fprintf(stderr, "listen(port %d, max %d) failed, errno=%d\n", port_number, MAX_PENDING_CONNECTION, errno);
-        queueReceivedMessage(RawMessage(INTERNAL_ERR, LED_ERROR_MESSAGE_LISTEN));
+        queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_LISTEN));
         Stop();
         return;
     }
@@ -88,7 +88,7 @@ void Receiver::setupSocket() {
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0) {
         fprintf(stderr, "accept() failed\n");
-        queueReceivedMessage(RawMessage(INTERNAL_ERR, LED_ERROR_MESSAGE_ACCEPT));
+        queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_ACCEPT));
         Stop();
         return;
     }
@@ -241,6 +241,10 @@ void Receiver::Run() {
             // keep extracting lines
         }
     }
+    if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Closing sockets...\n");
+    }
 
     // close sockets
     // (main loop could be wrapped in try/catch)
@@ -249,7 +253,7 @@ void Receiver::Run() {
 
     if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Closed sockets.\n");
+        printf("Sockets closed.\n");
     }
 }
 

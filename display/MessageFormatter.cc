@@ -26,7 +26,7 @@ void MessageFormatter::handleMessage(Receiver::RawMessage message) {
       handleAlgeMessage(message);
       break;
 
-    case Receiver::Protocol::INTERNAL_ERR:
+    case Receiver::Protocol::SIMPLE_TEXT:
       handleInternalErrMessage(message);
       break;
 
