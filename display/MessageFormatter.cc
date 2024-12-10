@@ -36,6 +36,11 @@ void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
 }
 
 void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
+  // message data includes eol, and may be all whitespace
+  if (message.data.length() < 20) {
+    fprintf(stderr, "Message too short\n");
+    return;
+  }
 
   // parse fields from the message
 
@@ -59,24 +64,28 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
 
   constexpr size_t RANK_FIELD_POS = 20;  // 21st char of protocol = string index 20
   constexpr size_t RANK_FIELD_LENGTH = 2;
-  std::string rankField = message.data.substr(RANK_FIELD_POS, RANK_FIELD_LENGTH);  // may be rank number, or blank
-  rankField.erase(std::remove_if(rankField.begin(), rankField.end(), ::isspace), rankField.end());
+  // may be rank number, or blank
+  std::string rankField = message.data.length() > RANK_FIELD_POS ? message.data.substr(RANK_FIELD_POS, RANK_FIELD_LENGTH) : "";
+  rankField = trimWhitespace(rankField);
 
   // format the individual fields
 
   // while bib has a leading zero that is not the only character, remove the zero
-  while (bibField.at(0) == '0' && bibField.length() > 1) {
+  while (bibField.length() > 1 && bibField.at(0) == '0') {
     bibField.erase(bibField.begin());
   }
 
   // if time field starts with hours that are all zero, remove from string
-  if (timeField.rfind("00:", 0) == 0
+  if (timeField.length() > 3
+      && timeField.rfind("00:", 0) == 0
       && timeField.find_first_of(':',3) != std::string::npos) {  // found a later colon, so first match was hours
     timeField = timeField.substr(3, timeField.length() - 3);
   }
 
   // if time field starts with two digit hours or two digit minutes, and the first digit is zero, remove leading zero
-  if (timeField.at(0) == '0' && timeField.at(2) == ':') {
+  if (timeField.length() > 2
+      && timeField.at(0) == '0'
+      && timeField.at(2) == ':') {
     timeField = timeField.substr(1, timeField.length() - 1);
   }
 
