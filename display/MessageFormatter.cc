@@ -46,8 +46,13 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
 
   const size_t TIME_FIELD_POS = 8;    // 9th char of protocol = string index 8
   const size_t TIME_FIELD_LENGTH = 12;  // hh:mm:ss.zht but leading or trailing part may be whitespace
-  std::string timeField = message.data.substr(TIME_FIELD_POS, TIME_FIELD_LENGTH);
-  timeField.erase(std::remove_if(timeField.begin(), timeField.end(), ::isspace), timeField.end());
+  const size_t BOARD_IDENTIFIER_POS = 0;  // 1st char of protocol = string index 0
+  const bool isBoardIdentifier = message.data.at(BOARD_IDENTIFIER_POS);
+  const std::string BOARD_CHAR_STRING = "ABCDEFGHIJ";
+  const int field_pos_shift =   // for specific alge protocol messages, time field starts at col 10 (string location 9)
+    (BOARD_CHAR_STRING.find(message.data.at(BOARD_IDENTIFIER_POS)) != std::string::npos) ? 1 : 0;
+  std::string timeField = message.data.substr(TIME_FIELD_POS+field_pos_shift, TIME_FIELD_LENGTH);
+  timeField = trimWhitespace(timeField);
 
   const size_t RANK_FIELD_POS = 20;  // 21st char of protocol = string index 20
   const size_t RANK_FIELD_LENGTH = 2;
@@ -70,10 +75,22 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
     timeField = timeField.substr(1, timeField.length() - 1);
   }
 
-  // if time is only seconds, format as m:ss
-  if (timeField.find_first_of(':') == std::string::npos) {
+  // if time is only seconds (and possibly fractions of second), remove whitespace and format as m:ss or m:ss.zht
+  if (!timeField.empty()
+      && timeField.find_first_of(':') == std::string::npos
+      && timeField.find_first_of("01234567890") != std::string::npos) {
     char timeBuffer[TIME_FIELD_LENGTH];
-    sprintf(timeBuffer, "0:%02d", std::stoi(timeField));
+    const size_t dotPos = timeField.find_first_of('.');
+    if (dotPos != std::string::npos) {
+      // has fractions of a second
+      sprintf(timeBuffer, "0:%02d%s",
+                std::stoi(timeField.substr(0, dotPos)),
+                timeField.substr(dotPos).c_str());
+    }
+    else {
+      // only seconds
+      sprintf(timeBuffer, "0:%02d", std::stoi(timeField));
+    }
     timeField = timeBuffer;
   }
 
@@ -107,4 +124,16 @@ TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) {
   newOrder.setVelocityIsHorizontal(default_horizontal);
   newOrder.setVelocityIsSingleScroll(default_once);
   return newOrder;
+}
+
+static std::string trimWhitespace(const std::string& str,
+                                    const std::string& whitespace = " \t") {
+  const auto strBegin = str.find_first_not_of(whitespace);
+  if (strBegin == std::string::npos)
+    return ""; // no content
+
+  const auto strEnd = str.find_last_not_of(whitespace);
+  const auto strRange = strEnd - strBegin + 1;
+
+  return str.substr(strBegin, strRange);
 }

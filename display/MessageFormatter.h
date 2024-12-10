@@ -17,6 +17,9 @@ public:
 
   void handleMessage(Receiver::RawMessage message);
 
+  static std::string trimWhitespace(const std::string& str,
+                                    const std::string& whitespace = " \t");
+
 private:
   Displayer& myDisplayer;
   SpacedFont defaultSpacedFont;
