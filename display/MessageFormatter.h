@@ -28,6 +28,7 @@ private:
 
   void handleAlgeMessage(Receiver::RawMessage message);
   void handleSimpleTextMessage(Receiver::RawMessage message);
+  TextChangeOrder buildDefaultChangeOrder(const char* text);
 };
 
 

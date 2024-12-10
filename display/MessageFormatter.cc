@@ -74,21 +74,15 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
 
   if (isRunningTime) {
     const std::string text = "[ " + timeField + " ]";
-    TextChangeOrder newOrder(defaultSpacedFont, text.c_str());
-    newOrder.setVelocity(defaultVelocity);
-    newOrder.setForegroundColor(defaultForegroundColor);
-    newOrder.setBackgroundColor(defaultBackgroundColor);
-    myDisplayer.startChangeOrder(newOrder);
+    myDisplayer.startChangeOrder(buildDefaultChangeOrder(text.c_str()));
   }
   else {
     // combine bib, time, and rank if provided
     const std::string text = (bibField.length() == 0 ? "" : bibField + "=")
                              + timeField
                              + (rankField.length() == 0 ? "" : "(" + rankField + ")");
-    TextChangeOrder newOrder(defaultSpacedFont, text.c_str());
-    newOrder.setVelocity(NO_VELOCITY_FOR_FIXED_TIMES ? 0 : defaultVelocity);
-    newOrder.setForegroundColor(defaultForegroundColor);
-    newOrder.setBackgroundColor(defaultBackgroundColor);
+    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
+    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
     myDisplayer.startChangeOrder(newOrder);
   }
 }
@@ -96,10 +90,16 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
 void MessageFormatter::handleSimpleTextMessage(Receiver::RawMessage message) {
   // forward the message string directly to the display, using default entrance parameters
 
-  TextChangeOrder newOrder(defaultSpacedFont, message.data.c_str());
+  myDisplayer.startChangeOrder(buildDefaultChangeOrder(message.data.c_str()));
+
+}
+
+TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) {
+  TextChangeOrder newOrder(defaultSpacedFont, text);
   newOrder.setVelocity(defaultVelocity);
   newOrder.setForegroundColor(defaultForegroundColor);
   newOrder.setBackgroundColor(defaultBackgroundColor);
-  myDisplayer.startChangeOrder(newOrder);
-
+  newOrder.setVelocityIsHorizontal(default_horizontal);
+  newOrder.setVelocityIsSingleScroll(default_once);
+  return newOrder;
 }
