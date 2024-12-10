@@ -20,7 +20,7 @@ MessageFormatter::MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFon
     defaultBackgroundColor = bgColor;
 };
 
-void MessageFormatter::handleMessage(Receiver::RawMessage message) {
+void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
   switch (message.protocol) {
     case Receiver::Protocol::ALGE_DLINE:
       handleAlgeMessage(message);
@@ -35,8 +35,8 @@ void MessageFormatter::handleMessage(Receiver::RawMessage message) {
   };
 }
 
-void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
-  const size_t BIB_FIELD_LENGTH = 3;
+void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
+  constexpr size_t BIB_FIELD_LENGTH = 3;
   std::string bibField = message.data.substr(0, BIB_FIELD_LENGTH);  // first three char may be bib number, or blank
   bibField.erase(std::remove_if(bibField.begin(), bibField.end(), ::isspace), bibField.end());  // may now be empty string
 
@@ -54,8 +54,8 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
   std::string timeField = message.data.substr(TIME_FIELD_POS+field_pos_shift, TIME_FIELD_LENGTH);
   timeField = trimWhitespace(timeField);
 
-  const size_t RANK_FIELD_POS = 20;  // 21st char of protocol = string index 20
-  const size_t RANK_FIELD_LENGTH = 2;
+  constexpr size_t RANK_FIELD_POS = 20;  // 21st char of protocol = string index 20
+  constexpr size_t RANK_FIELD_LENGTH = 2;
   std::string rankField = message.data.substr(RANK_FIELD_POS, RANK_FIELD_LENGTH);  // may be rank number, or blank
   rankField.erase(std::remove_if(rankField.begin(), rankField.end(), ::isspace), rankField.end());
 
@@ -100,16 +100,16 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
   }
   else {
     // combine bib, time, and rank if provided
-    const std::string text = (bibField.length() == 0 ? "" : bibField + "=")
+    const std::string text = (bibField.empty() ? "" : bibField + "=")
                              + timeField
-                             + (rankField.length() == 0 ? "" : "(" + rankField + ")");
+                             + (rankField.empty() ? "" : "(" + rankField + ")");
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
     myDisplayer.startChangeOrder(newOrder);
   }
 }
 
-void MessageFormatter::handleSimpleTextMessage(Receiver::RawMessage message) {
+void MessageFormatter::handleSimpleTextMessage(const Receiver::RawMessage& message) {
   // forward the message string directly to the display, using default entrance parameters
 
   myDisplayer.startChangeOrder(buildDefaultChangeOrder(message.data.c_str()));
@@ -124,4 +124,16 @@ TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) {
   newOrder.setVelocityIsHorizontal(default_horizontal);
   newOrder.setVelocityIsSingleScroll(default_once);
   return newOrder;
+}
+
+std::string MessageFormatter::trimWhitespace(const std::string& str,
+                                    const std::string& whitespace) {
+  const auto strBegin = str.find_first_not_of(whitespace);
+  if (strBegin == std::string::npos)
+    return ""; // no content
+
+  const auto strEnd = str.find_last_not_of(whitespace);
+  const auto strRange = strEnd - strBegin + 1;
+
+  return str.substr(strBegin, strRange);
 }

@@ -15,7 +15,10 @@ public:
                     rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
                     float velocity, bool scroll_horizontal, bool scroll_once);
 
-  void handleMessage(Receiver::RawMessage message);
+  void handleMessage(const Receiver::RawMessage& message);
+
+  static std::string trimWhitespace(const std::string& str,
+                                    const std::string& whitespace = " \t");
 
 private:
   Displayer& myDisplayer;
@@ -26,8 +29,8 @@ private:
   bool default_horizontal;
   bool default_once;
 
-  void handleAlgeMessage(Receiver::RawMessage message);
-  void handleSimpleTextMessage(Receiver::RawMessage message);
+  void handleAlgeMessage(const Receiver::RawMessage& message);
+  void handleSimpleTextMessage(const Receiver::RawMessage& message);
   TextChangeOrder buildDefaultChangeOrder(const char* text);
 };
 
