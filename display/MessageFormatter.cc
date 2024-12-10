@@ -54,6 +54,11 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
   std::string rankField = message.data.substr(RANK_FIELD_POS, RANK_FIELD_LENGTH);  // may be rank number, or blank
   rankField.erase(std::remove_if(rankField.begin(), rankField.end(), ::isspace), rankField.end());
 
+  // while bib has a leading zero that is not the only character, remove the zero
+  while (bibField.at(0) == '0' && bibField.length() > 1) {
+    bibField.erase(bibField.begin());
+  }
+
   // if time field starts with hours that are all zero, remove from string
   if (timeField.rfind("00:", 0) == 0
       && timeField.find_first_of(':',3) != std::string::npos) {  // found a later colon, so first match was hours
