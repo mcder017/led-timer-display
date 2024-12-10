@@ -119,7 +119,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
   scroll_direction = (currChangeOrder.getVelocity() <= 0) ? -1 : 1;
   const auto speed = static_cast<float>(fabs(static_cast<double>(currChangeOrder.getVelocity())));
 
-  delay_speed_usec = (currChangeOrder.isScrolling() || currChangeOrder.getSpacedFont().fontPtr == nullptr)
+  delay_speed_usec = (!currChangeOrder.isScrolling() || currChangeOrder.getSpacedFont().fontPtr == nullptr)
                          ? 0
                          : static_cast<int>(1000000.0 / speed / currChangeOrder.getSpacedFont().fontPtr->CharacterWidth('W'));
 
