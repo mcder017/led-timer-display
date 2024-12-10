@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>  // inet_ntoa
+#include <poll.h>
 #include <cstdio>
 #include <ios>
 #include <unistd.h>  // for io on linux, also option parsing; sleep
@@ -87,11 +88,20 @@ void Receiver::setupSocket() {
 
 void Receiver::checkAndAcceptConnection() {
     if (newsockfd < 0) {
-        clilen = sizeof(cli_addr);
-        newsockfd = accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_NONBLOCK);
-        if (newsockfd >= 0 && isatty(STDIN_FILENO)) {
-            // Only give a message if we are interactive. If connected via pipe, be quiet
-            printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
+        // size 1 "set" of socket descriptors
+        struct pollfd fds[1];
+        memset(fds, 0 , sizeof(fds));
+        fds[0].fd = sockfd;
+        fds[0].events = POLLIN;
+        const int timeout_poll = 100; // milliseconds
+
+        if (poll(fds, 1, timeout_poll) > 0) {
+            clilen = sizeof(cli_addr);
+            newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+            if (newsockfd >= 0 && isatty(STDIN_FILENO)) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
+            }
         }
     }
 }
@@ -241,16 +251,17 @@ void Receiver::Run() {
 
     while (running()) { // handles lock within the call
         checkAndAcceptConnection();
-        checkAndAppendData(tcp_unprocessed);
 
-        // look for end-of-protocol message char anywhere in the buffer, then pull and parse lines
-        while (extractLineToQueue(tcp_unprocessed)) {
-            // keep extracting lines
+        if (newsockfd >= 0) {     // connection is open
+            checkAndAppendData(tcp_unprocessed);
+
+            // look for end-of-protocol message char anywhere in the buffer, then pull and parse lines
+            while (extractLineToQueue(tcp_unprocessed)) {
+                // keep extracting lines
+            }
         }
-    }
-    if (isatty(STDIN_FILENO)) {
-        // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Closing sockets...\n");
+        // short sleep
+        usleep(15 * 1000);
     }
 
     // close sockets
