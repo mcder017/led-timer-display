@@ -33,6 +33,7 @@
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
   interrupt_received = true;
+  fprintf(stderr, "Interrupt received\n");
 }
 
 static int usage(const char *progname) {
@@ -191,7 +192,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, InterruptHandler);
   if (isatty(STDIN_FILENO)) {
     // Only give a message if we are interactive. If connected via pipe, be quiet
-    printf("CTRL-C for exit.\n");
+    printf("Press CTRL-C for exit.\n");
   }
 
   MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed);
@@ -208,6 +209,10 @@ int main(int argc, char *argv[]) {
     // when no messages can be received, and there is nothing to scroll, delay quite a while before looping
     if (!myReceiver.isRunning() && !myDisplayer.getChangeOrder().isScrolling() && !myDisplayer.isChangeOrderDone()) {
       do_pause();
+    }
+    else {
+      // short sleep
+      usleep(15 * 1000);
     }
   }
 

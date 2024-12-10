@@ -165,9 +165,9 @@ void Displayer::iota() {
   if (!currChangeOrderDone) {
 
     // clear offline canvas
-    offscreen_canvas->Fill(currChangeOrder.getForegroundColor().r,
-                           currChangeOrder.getForegroundColor().g,
-                           currChangeOrder.getForegroundColor().b);
+    offscreen_canvas->Fill(currChangeOrder.getBackgroundColor().r,
+                           currChangeOrder.getBackgroundColor().g,
+                           currChangeOrder.getBackgroundColor().b);
 
     // draw text onto offline canvas.
     // length = holds how many pixels our text takes up
@@ -177,7 +177,7 @@ void Displayer::iota() {
     const int length = rgb_matrix::DrawText(offscreen_canvas, currFont,
                                   x, y + currFont.baseline(),
                                   currChangeOrder.getForegroundColor(),
-                                  nullptr,
+                                  nullptr,  // already filled with background color, so use transparency when drawing
                                   currChangeOrder.getText(), currLetterSpacing);
 
     // Make sure render-time delays are not influencing scroll-time
