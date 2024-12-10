@@ -10,6 +10,8 @@
 #include <cstdio>
 #include <ios>
 #include <unistd.h>  // for io on linux, also option parsing; sleep
+#include <strings.h>    // bzero
+#include <string.h>     // strlen
 
 static auto LED_ERROR_MESSAGE_SOCKET = "P-ERR-S";
 static auto LED_ERROR_MESSAGE_BIND = "P-ERR-B";
@@ -151,7 +153,8 @@ bool Receiver::extractLineToQueue(std::string& unprocessed_buffer) {
 }
 
 void Receiver::parseLineToQueue(const char* single_line_buffer) {
-    const bool alge_line = parseAlgeLineToQueue(single_line_buffer);    // if true, line has been pushed into queue
+    //const bool alge_line =
+        parseAlgeLineToQueue(single_line_buffer);    // if true, line has been pushed into queue
 }
 
 bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
