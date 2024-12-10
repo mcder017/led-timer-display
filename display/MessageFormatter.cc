@@ -3,8 +3,22 @@
 //
 
 #include "MessageFormatter.h"
+
 #include <algorithm>
 #include <string>
+
+static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
+
+MessageFormatter::MessageFormatter(Displayer& aDisplayer, const rgb_matrix::Font* aFontPtr, const int aLetterSpacing,
+                                   const rgb_matrix::Color& fgColor, const rgb_matrix::Color& bgColor,
+                                   const float velocity)
+      : myDisplayer(aDisplayer), defaultVelocity(velocity) {
+
+    defaultSpacedFont.fontPtr = aFontPtr;
+    defaultSpacedFont.letterSpacing = aLetterSpacing;
+    defaultForegroundColor = fgColor;
+    defaultBackgroundColor = bgColor;
+};
 
 void MessageFormatter::handleMessage(Receiver::RawMessage message) {
   switch (message.protocol) {
@@ -60,18 +74,26 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
 
   if (isRunningTime) {
     const std::string text = "[ " + timeField + " ]";
-    myDisplayer.startChangeOrder(TextChangeOrder(text.c_str()));
+    TextChangeOrder newOrder(defaultSpacedFont, text.c_str());
+    newOrder.setVelocity(defaultVelocity);
+    newOrder.setForegroundColor(defaultForegroundColor);
+    newOrder.setBackgroundColor(defaultBackgroundColor);
+    myDisplayer.startChangeOrder(newOrder);
   }
   else {
     // combine bib, time, and rank if provided
     const std::string text = (bibField.length() == 0 ? "" : bibField + "=")
                              + timeField
                              + (rankField.length() == 0 ? "" : "(" + rankField + ")");
-    myDisplayer.startChangeOrder(TextChangeOrder(text.c_str()));
+    TextChangeOrder newOrder(defaultSpacedFont, text.c_str());
+    newOrder.setVelocity(NO_VELOCITY_FOR_FIXED_TIMES ? 0 : defaultVelocity);
+    newOrder.setForegroundColor(defaultForegroundColor);
+    newOrder.setBackgroundColor(defaultBackgroundColor);
+    myDisplayer.startChangeOrder(newOrder);
   }
 }
 
 void MessageFormatter::handleInternalErrMessage(Receiver::RawMessage message) {
   // forward the message string directly to the display
-  myDisplayer.startChangeOrder(TextChangeOrder(message.data.c_str()));
+  myDisplayer.startChangeOrder(defaultSpacedFont, TextChangeOrder(message.data.c_str()));
 }

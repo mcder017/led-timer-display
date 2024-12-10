@@ -185,7 +185,7 @@ void Displayer::iota() {
         // First time. Start timer, but don't wait.
         clock_gettime(CLOCK_MONOTONIC, &next_frame);
       } else {
-        add_micros(&next_frame, delay_speed_usec);  // TBD could make either Receiver or Displayer a process so slow scroll speed doesn't affect Receiver
+        add_micros(&next_frame, delay_speed_usec);
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, nullptr);
       }
     }

@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
     printf("CTRL-C for exit.\n");
   }
 
-  MessageFormatter myFormatter(myDisplayer, *fontPtr, letter_spacing);
+  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed);
 
   while (!interrupt_received) {
     // if new valid message,  decide what to display

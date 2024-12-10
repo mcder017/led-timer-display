@@ -7,23 +7,26 @@
 
 #include "Displayer.h"
 #include "Receiver.h"
+#include "TextChangeOrder.h"
 
 class MessageFormatter {
 public:
-  MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font& aFont, const int aLetterSpacing)
-      : myDisplayer(aDisplayer), defaultFont(aFont), defaultLetterSpacing(aLetterSpacing) {};
+  MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFontPtr, int aLetterSpacing,
+                    rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
+                    float velocity);
 
   void handleMessage(Receiver::RawMessage message);
 
 private:
   Displayer& myDisplayer;
-  rgb_matrix::Font& defaultFont;
-  int defaultLetterSpacing;
+  SpacedFont defaultSpacedFont;
+  rgb_matrix::Color defaultForegroundColor;
+  rgb_matrix::Color defaultBackgroundColor;
+  float defaultVelocity;
 
   void handleAlgeMessage(Receiver::RawMessage message);
   void handleInternalErrMessage(Receiver::RawMessage message);
 };
-
 
 
 #endif //MESSAGEFORMATTER_H
