@@ -191,7 +191,7 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
         // possible ALGE protocol message
         const std::string msg(single_line_buffer);
         const std::string msg_non_eol = msg.substr(0, data_chars_excluding_eol);
-        if (msg.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890.: \x01\x02\x03") != std::string::npos) {
+        if (msg_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890.: \x01\x02\x03") != std::string::npos) {
             possible_alge_message = false;
         }
         else {
@@ -204,12 +204,12 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
 
             // the hex 01,02,03 are only allowed at one location
             constexpr size_t SPEED_ID_POS = 7;    // protocol index 8 is string index 7
-            size_t hexPos = msg.find_first_of("\x01\x02\x03");
+            size_t hexPos = msg_non_eol.find_first_of("\x01\x02\x03");
             if (hexPos != std::string::npos) {
                 if (hexPos != SPEED_ID_POS) {
                     possible_alge_message = false;
                 }
-                else if (msg.find_first_of("\x01\x02\x03", SPEED_ID_POS+1) != std::string::npos) {
+                else if (msg_non_eol.find_first_of("\x01\x02\x03", SPEED_ID_POS+1) != std::string::npos) {
                     // those characters only allowed in the one location
                     possible_alge_message = false;
                 }
@@ -217,7 +217,7 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
 
             // dot can be either 3rd char after a colon,
             // or in one of two fixed positions as indicator this is a "running" message
-            size_t dotPos = msg.find_last_of('.');
+            size_t dotPos = msg_non_eol.find_last_of('.');
             if (dotPos != std::string::npos) {
                 constexpr size_t RUNNING_FLAG_POS1 = 3; // protocol index 4 is string index 3
                 constexpr size_t RUNNING_FLAG_POS2 = 4; // protocol index 5 is string index 4
@@ -233,7 +233,7 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
     }
 
     if (!possible_alge_message) {
-        fprintf(stderr, "Discarding unrecognized message:%s",
+        fprintf(stderr, "Discarding unrecognized message:%s\n",
             nonprintableToHexadecimal(single_line_buffer).c_str());
     }
     else {
