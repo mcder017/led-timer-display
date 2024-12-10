@@ -182,12 +182,6 @@ int main(int argc, char *argv[]) {
   Receiver myReceiver(port_number);
   myReceiver.Start();
 
-
-  // initial display of text (we are awake, but not yet connected)
-  myDisplayer.startChangeOrder(TextChangeOrder(line));
-  myDisplayer.iota();
-
-
   signal(SIGTERM, InterruptHandler);
   signal(SIGINT, InterruptHandler);
   if (isatty(STDIN_FILENO)) {
