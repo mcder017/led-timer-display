@@ -105,16 +105,20 @@ int main(int argc, char *argv[]) {
 
   int letter_spacing = 0;
   float speed = 7.0f;
+  bool set_horizontal_scroll = true;
+  bool set_single_scroll = true;
 
   int port_number = Receiver::TCP_PORT_DEFAULT;
   int opt;
-  while ((opt = getopt(argc, argv, "x:y:f:C:B:t:s:p:Q")) != -1) {  // ':' suffix indicates required argument
+  while ((opt = getopt(argc, argv, "x:y:f:C:B:t:s:p:v:i:Q")) != -1) {  // ':' suffix indicates required argument
     switch (opt) {
     case 's': speed = atof(optarg); break;
     case 'x': x_orig = atoi(optarg); break;
     case 'y': y_orig = atoi(optarg); break;
     case 'f': bdf_font_file_name = optarg; break;
     case 't': letter_spacing = atoi(optarg); break;
+    case 'v': set_horizontal_scroll = atoi(optarg) != 0; break;
+    case 'i': set_single_scroll = atoi(optarg) != 0; break;
     case 'C':
       if (!parseColor(&fg_color, optarg)) {
         fprintf(stderr, "Invalid color spec: %s\n", optarg);
@@ -141,6 +145,9 @@ int main(int argc, char *argv[]) {
       fg_color.setColor(255,0,0);  // red
       letter_spacing = -1;
       y_orig = -2;
+
+      set_horizontal_scroll = true;
+      set_single_scroll = true;
 
       speed = 0;
       break;
@@ -179,7 +186,8 @@ int main(int argc, char *argv[]) {
   Receiver myReceiver(port_number);
   myReceiver.Start();
 
-  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed);
+  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed,
+                              set_horizontal_scroll, set_single_scroll);
 
   // initial display of text (we are awake, but perhaps not yet connected)
   myFormatter.handleMessage(Receiver::RawMessage(Receiver::Protocol::SIMPLE_TEXT, line));

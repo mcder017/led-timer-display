@@ -11,7 +11,6 @@
 
 #include <ctime>    // for monitoring clock for steady scrolling
 #include <cmath>    // for fabs
-#include <string.h>
 
 #define EXTREME_COLORS_PWM_BITS 1
 
@@ -117,7 +116,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
   next_frame.tv_sec = 0;
   next_frame.tv_nsec = 0;
 
-  scroll_direction = (currChangeOrder.getVelocity() >= 0) ? -1 : 1;
+  scroll_direction = (currChangeOrder.getVelocity() <= 0) ? -1 : 1;
   const auto speed = static_cast<float>(fabs(static_cast<double>(currChangeOrder.getVelocity())));
 
   delay_speed_usec = (currChangeOrder.isScrolling() || currChangeOrder.getSpacedFont().fontPtr == nullptr)
@@ -153,7 +152,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
         y = canvas->height();
       }
     }
-    //printf("Scrolling request... startX=%d, startY=%d, vel=%f, dir=%d, %s\n",x,y,currChangeOrder.getVelocity(),scroll_direction,currChangeOrder.getVelocityIsHorizontal() ? "horizontal" : "vertical");//DEBUG
+    //printf("Scrolling request... startX=%d, startY=%d, vel=%f, dir=%d, %s, %s\n",x,y,currChangeOrder.getVelocity(),scroll_direction,currChangeOrder.getVelocityIsHorizontal() ? "horizontal" : "vertical",currChangeOrder.getVelocityIsSingleScroll() ? "single" : "repeating");// DEBUG
   }
   else {
     x = x_origin;
@@ -247,12 +246,12 @@ void Displayer::iota() {
         // wrap while scrolling vertical
         if ((scroll_direction < 0 && y + currFont.baseline() < 0) ||
            (scroll_direction > 0 && y > canvas->height())) {
-          y = y_origin + ((scroll_direction > 0) ? -currFont.baseline() : canvas->height());
+          y = y_origin + ((scroll_direction > 0) ? -currFont.height() : canvas->height());
         }
       }
 
       // handle single scroll (non-continuous scrolling)
-      if (!currChangeOrder.getVelocityIsSingleScroll()) {
+      if (currChangeOrder.getVelocityIsSingleScroll()) {
         if (currChangeOrder.getVelocityIsHorizontal()) {
           // stop horizontal scroll when reach origin position
           if ((scroll_direction < 0 && x <= x_origin) ||
