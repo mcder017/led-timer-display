@@ -131,7 +131,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
 
   if (isatty(STDIN_FILENO)) {
     // Only give a message if we are interactive. If connected via pipe, be quiet
-    printf("To Display(%llu):%s\n",strlen(aChangeOrder.getText()), aChangeOrder.getText());
+    printf("To Display:%s\n",aChangeOrder.getText());
   }
 
 }

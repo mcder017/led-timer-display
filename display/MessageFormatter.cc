@@ -9,9 +9,9 @@
 
 static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
 
-MessageFormatter::MessageFormatter(Displayer& aDisplayer, const rgb_matrix::Font* aFontPtr, const int aLetterSpacing,
-                                   const rgb_matrix::Color& fgColor, const rgb_matrix::Color& bgColor,
-                                   const float velocity)
+MessageFormatter::MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFontPtr, int aLetterSpacing,
+                                   rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
+                                   float velocity)
       : myDisplayer(aDisplayer), defaultVelocity(velocity) {
 
     defaultSpacedFont.fontPtr = aFontPtr;
@@ -95,5 +95,5 @@ void MessageFormatter::handleAlgeMessage(Receiver::RawMessage message) {
 
 void MessageFormatter::handleInternalErrMessage(Receiver::RawMessage message) {
   // forward the message string directly to the display
-  myDisplayer.startChangeOrder(defaultSpacedFont, TextChangeOrder(message.data.c_str()));
+  myDisplayer.startChangeOrder(TextChangeOrder(defaultSpacedFont, message.data.c_str()));
 }
