@@ -19,10 +19,8 @@ static auto LED_ERROR_MESSAGE_BIND = "P-ERR-B";
 static auto LED_ERROR_MESSAGE_LISTEN = "P-ERR-L";
 static auto LED_ERROR_MESSAGE_SOCKET_OPTIONS = "P-ERR-O";
 
-Receiver::Receiver() : Receiver(TCP_PORT_DEFAULT) {}
-
 Receiver::Receiver(int aPort_number)  : running_(false), sockfd(-1), newsockfd(-1), clilen(0),
-                                        port_number(aPort_number) {
+                                        port_number(aPort_number), clearDisplayOnUnrecognizedMessage(true) {
     bzero(socket_buffer,PROTOCOL_MESSAGE_MAX_LENGTH);
     bzero((char *) &serv_addr, sizeof(serv_addr));
     bzero((char *) &cli_addr, sizeof(cli_addr));
@@ -32,6 +30,8 @@ Receiver::Receiver(int aPort_number)  : running_(false), sockfd(-1), newsockfd(-
     serv_addr.sin_port = htons(port_number);
 
 }
+
+Receiver::Receiver() : Receiver(TCP_PORT_DEFAULT) {}    // forward to other constructor
 
 Receiver::~Receiver() {
     Stop();
@@ -233,8 +233,11 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
     }
 
     if (!possible_alge_message) {
-        fprintf(stderr, "Discarding unrecognized message:%s\n",
+        fprintf(stderr, "Discarding unrecognized message%s:%s\n",
+            clearDisplayOnUnrecognizedMessage ? " (and clear display)" : "",
             nonprintableToHexadecimal(single_line_buffer).c_str());
+
+        if (clearDisplayOnUnrecognizedMessage) queueReceivedMessage(RawMessage(SIMPLE_TEXT, ""));
     }
     else {
         // if appears to be valid, queue for processing by other classes

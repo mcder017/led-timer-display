@@ -68,6 +68,9 @@ public:
           return pendingMessage;
      }
 
+     void setClearOnUnrecognizedMessage(bool doClear) {clearDisplayOnUnrecognizedMessage = doClear;}
+     [[nodiscard]] bool isClearOnUnrecognizedMessage() const {return clearDisplayOnUnrecognizedMessage;}
+
      static std::string nonprintableToHexadecimal(const char* str);
 
 protected:
@@ -93,6 +96,8 @@ private:
      char socket_buffer[PROTOCOL_MESSAGE_MAX_LENGTH+1];     // include room for end-of-string null
      struct sockaddr_in serv_addr, cli_addr;
      int port_number;
+
+     bool clearDisplayOnUnrecognizedMessage;
 
      void setupSocket();
      void checkAndAcceptConnection();
