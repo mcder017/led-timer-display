@@ -33,7 +33,7 @@
 volatile bool interrupt_received = false;
 static void InterruptHandler(int signo) {
   interrupt_received = true;
-  fprintf(stderr, "Interrupt received\n");
+  // not safe to call printf in signal handler
 }
 
 static int usage(const char *progname) {
@@ -215,6 +215,7 @@ int main(int argc, char *argv[]) {
       usleep(15 * 1000);
     }
   }
+  fprintf(stderr,"Interrupt received\n");
 
   myReceiver.Stop();
 

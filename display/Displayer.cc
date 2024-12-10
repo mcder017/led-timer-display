@@ -124,30 +124,60 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
                          ? 0
                          : static_cast<int>(1000000.0 / speed / currChangeOrder.getSpacedFont().fontPtr->CharacterWidth('W'));
 
-  x = (currChangeOrder.getVelocityIsHorizontal() && scroll_direction < 0) ? canvas->width() : x_origin;
-  y = (!currChangeOrder.getVelocityIsHorizontal() && scroll_direction < 0) ? canvas->height() : y_origin;
+  if (currChangeOrder.isScrolling()) {
+    if (currChangeOrder.getVelocityIsHorizontal()) {
+      if (scroll_direction > 0) {
+        // get width of text
+        // not thread safe, since we are currently using the same offscreen_canvas we use in iota
+        const int length = rgb_matrix::DrawText(offscreen_canvas, *currChangeOrder.getSpacedFont().fontPtr,
+                                    x, y + currChangeOrder.getSpacedFont().fontPtr->baseline(),
+                                    currChangeOrder.getForegroundColor(),
+                                    nullptr,  // already filled with background color, so use transparency when drawing
+                                    currChangeOrder.getText(), currChangeOrder.getSpacedFont().letterSpacing);
+        x = -length;
+      }
+      else {
+        x = canvas->width();
+      }
 
-  setChangeDone(false);
+      y = y_origin;
+    }
+    else {
+      // scrolling vertically
+      x = x_origin;
 
-  if (isatty(STDIN_FILENO)) {
-    // Only give a message if we are interactive. If connected via pipe, be quiet
-    printf("To Display:%s\n",aChangeOrder.getText());
+      if (scroll_direction > 0) {
+        y = -currChangeOrder.getSpacedFont().fontPtr->height();
+      }
+      else {
+        y = canvas->height();
+      }
+    }
   }
-
+  else {
+    x = x_origin;
+    y = y_origin;
+  }
+  setChangeDone(false);
 }
 
 inline void Displayer::setChangeDone(bool isChangeDone) {
   currChangeOrderDone = isChangeDone;
   last_change_time = std::time(nullptr);
+
+  if (isatty(STDIN_FILENO)) {
+    // Only give a message if we are interactive. If connected via pipe, be quiet
+    printf("Displayed:%s\n",currChangeOrder.getText());
+  }
 }
 
 void Displayer::dotCorners() {
   last_change_time = std::time(nullptr);
 
   // clear offline canvas
-  offscreen_canvas->Fill(currChangeOrder.getForegroundColor().r,
-                         currChangeOrder.getForegroundColor().g,
-                         currChangeOrder.getForegroundColor().b);
+  offscreen_canvas->Fill(currChangeOrder.getBackgroundColor().r,
+                         currChangeOrder.getBackgroundColor().g,
+                         currChangeOrder.getBackgroundColor().b);
 
   rgb_matrix::Color red(255, 0, 0);
   offscreen_canvas->SetPixel(0,0, red.r, red.g, red.b);
@@ -174,6 +204,7 @@ void Displayer::iota() {
     const rgb_matrix::Font& currFont = *currChangeOrder.getSpacedFont().fontPtr;
     const int currLetterSpacing = currChangeOrder.getSpacedFont().letterSpacing;
 
+    //printf("Loc(%d,%d)\n",x,y+currFont.baseline());//DEBUG
     const int length = rgb_matrix::DrawText(offscreen_canvas, currFont,
                                   x, y + currFont.baseline(),
                                   currChangeOrder.getForegroundColor(),
@@ -246,7 +277,7 @@ void Displayer::iota() {
   }
   else {
     // no active change order
-    const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 60;
+    const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 30;
     if (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
       dotCorners();
     }

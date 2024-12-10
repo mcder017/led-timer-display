@@ -246,6 +246,11 @@ void Receiver::Run() {
     // (main loop could be wrapped in try/catch)
     if (newsockfd >= 0) {close(newsockfd); newsockfd = -1;}
     if (sockfd >= 0) {close(sockfd); sockfd = -1;}
+
+    if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Closed sockets.\n");
+    }
 }
 
 /**
