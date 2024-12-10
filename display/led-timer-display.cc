@@ -117,8 +117,8 @@ int main(int argc, char *argv[]) {
     case 'y': y_orig = atoi(optarg); break;
     case 'f': bdf_font_file_name = optarg; break;
     case 't': letter_spacing = atoi(optarg); break;
-    case 'v': set_horizontal_scroll = atoi(optarg) != 0; break;
-    case 'i': set_single_scroll = atoi(optarg) != 0; break;
+    case 'v': set_horizontal_scroll = atoi(optarg) == 0; break;
+    case 'i': set_single_scroll = atoi(optarg) == 0; break;
     case 'C':
       if (!parseColor(&fg_color, optarg)) {
         fprintf(stderr, "Invalid color spec: %s\n", optarg);
