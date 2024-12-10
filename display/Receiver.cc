@@ -84,23 +84,29 @@ void Receiver::setupSocket() {
         printf("Listening on port %d...\n", port_number);
     }
 
-    //TODO timeout, move to Run loop, and use timeout on waiting for message as well to watch for new connections
-    clilen = sizeof(cli_addr);
-    newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
-    if (newsockfd < 0) {
-        fprintf(stderr, "accept() failed\n");
-        queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_ACCEPT));
-        Stop();
-        return;
-    }
-    if (isatty(STDIN_FILENO)) {
-        // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
-    }
-
 }
 
-void Receiver::waitAndAppendData(std::string& unprocessed_buffer) {
+void Receiver::checkAndAcceptConnection() const {
+    if (newsockfd < 0) {
+        clilen = sizeof(cli_addr);
+        newsockfd = accept4(sockfd, (struct sockaddr *) &cli_addr, &clilen, SOCK_NONBLOCK);
+        /*
+        if (newsockfd < 0) {
+            fprintf(stderr, "accept() failed\n");
+            queueReceivedMessage(RawMessage(SIMPLE_TEXT, LED_ERROR_MESSAGE_ACCEPT));
+            Stop();
+            return;
+        }
+        */
+        if (newsockfd >= 0 && isatty(STDIN_FILENO)) {
+            // Only give a message if we are interactive. If connected via pipe, be quiet
+            printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
+        }
+    }
+}
+
+void Receiver::checkAndAppendData(std::string& unprocessed_buffer) {
+    // look, but do not wait if no data ready
     const int num_read = recv(newsockfd, socket_buffer, PROTOCOL_MESSAGE_MAX_LENGTH, MSG_DONTWAIT);
     if (num_read > 0) {
 
@@ -113,6 +119,14 @@ void Receiver::waitAndAppendData(std::string& unprocessed_buffer) {
 
         // accumulate, so we can handle more than one protocol message in tcp buffer, or partial message in buffer
         unprocessed_buffer.append(socket_buffer, num_read);
+    }
+    else if (num_read == 0) {   // client indicates end of connection
+        close(newsockfd);
+        newsockfd = -1;
+        if (isatty(STDIN_FILENO)) {
+            // Only give a message if we are interactive. If connected via pipe, be quiet
+            printf("Connection closed by client\n");
+        }
     }
 }
 
@@ -235,7 +249,8 @@ void Receiver::Run() {
     std::string tcp_unprocessed;  // empty buffer to accumulate unprocessed messages separated by newlines
 
     while (running()) { // handles lock within the call
-        waitAndAppendData(tcp_unprocessed);
+        checkAndAcceptConnection();
+        checkAndAppendData(tcp_unprocessed);
 
         // look for end-of-protocol message char anywhere in the buffer, then pull and parse lines
         while (extractLineToQueue(tcp_unprocessed)) {

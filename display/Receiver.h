@@ -95,7 +95,8 @@ private:
      int port_number;
 
      void setupSocket();
-     void waitAndAppendData(std::string& unprocessed_buffer);
+     void checkAndAcceptConnection() const;
+     void checkAndAppendData(std::string& unprocessed_buffer);
      bool extractLineToQueue(std::string& unprocessed_buffer);
      void parseLineToQueue(const char* single_line_buffer);
      bool parseAlgeLineToQueue(const char* single_line_buffer);
