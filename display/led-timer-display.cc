@@ -53,6 +53,8 @@ static int usage(const char *progname) {
           "\n"
           "\t-C <r,g,b>        : Text Color. Default 255,255,255 (white)\n"
           "\t-B <r,g,b>        : Background-Color. Default 0,0,0 (black)\n"
+          "\t-v <0 or 1>       : Vertical scrolling (1).  Default is horizontal (0)\n"
+          "\t-i <scroll style> : 0=Infinite scroll past and loop, 1=Scroll on and stop, 2=Scroll past and stop\n"
           );
   fprintf(stderr, "\nGeneral LED matrix options:\n");
   rgb_matrix::PrintMatrixFlags(stderr);
@@ -66,7 +68,7 @@ static int usage(const char *progname) {
           "\t                    row 16, cols 32, chain 3, parallel 1,\n"
           "\t                    GPIO slowdown 2, GPIO map adafruit-hat-pwm,\n"
           "\t                    font 10x20, text red (255,0,0), y-offset -2, track spacing -1\n"
-          "\t                    speed 0\n"
+          "\t                    speed 0, horizontal scroll, scroll OnOff\n"
           );
   return 1;
 }
