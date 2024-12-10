@@ -1,7 +1,8 @@
 CFLAGS=-Wall -O3 -g -Wextra -Wno-unused-parameter
 CXXFLAGS=$(CFLAGS)
-OBJECTS=led-timer-display.o
-BINARIES=led-timer-display
+
+SRCS=led-timer-display.cc Displayer.cc MessageFormatter.cc Receiver.cc TextChangeOrder.cc
+OBJECTS=$(subst .cc,.o,$(SRCS))
 
 # Where our library resides. You mostly only need to change the
 # RGB_LIB_DISTRIBUTION, this is where the library is checked out.
@@ -12,39 +13,26 @@ RGB_LIBRARY_NAME=rgbmatrix
 RGB_LIBRARY=$(RGB_LIBDIR)/lib$(RGB_LIBRARY_NAME).a
 LDFLAGS+=-L$(RGB_LIBDIR) -l$(RGB_LIBRARY_NAME) -lrt -lm -lpthread
 
-# To compile image-example
-MAGICK_CXXFLAGS?=$(shell GraphicsMagick++-config --cppflags --cxxflags)
-MAGICK_LDFLAGS?=$(shell GraphicsMagick++-config --ldflags --libs)
-
-all : $(BINARIES)
+all : led-timer-display
 
 $(RGB_LIBRARY): FORCE
 	$(MAKE) -C $(RGB_LIBDIR)
 
-led-timer-display : led-timer-display.o Displayer.o MessageFormatter.o Receiver.o TextChangeOrder.o
-
-# All the binaries that have the same name as the object file.q
-#% : %.o $(RGB_LIBRARY)
-#	$(CXX) $< -o $@ $(LDFLAGS)
-% : %.o $(RGB_LIBRARY)
-	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
-
-#image-example.o : image-example.cc
-#	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) $(MAGICK_CXXFLAGS) -c -o $@ $<
-
-#image-example: image-example.o $(RGB_LIBRARY)
-#	$(CXX) $< -o $@ $(LDFLAGS) $(MAGICK_LDFLAGS)
-
-# Since the C example uses the C++ library underneath, which depends on C++
-# runtime stuff, you still have to also link -lstdc++
-#c-example : c-example.o $(RGB_LIBRARY)
-#	$(CC) $< -o $@ $(LDFLAGS) -lstdc++
-
 %.o : %.cc
-	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c -o $@ $<
+	$(CXX) -I$(RGB_INCDIR) $(CXXFLAGS) -c $< -o $@
 
-%.o : %.c
-	$(CC) -I$(RGB_INCDIR) $(CFLAGS) -c -o $@ $<
+led-timer-display : $(OBJECTS)
+	$(CXX) -o $@ $(OBJECTS) $(LDFLAGS)
+
+led-timer-display.o : led-timer-display.cc
+
+Displayer.o: Displayer.cc Displayer.h
+
+MessageFormatter.o: MessageFormatter.cc MessageFormatter.h
+
+Receiver.o: Receiver.cc Receiver.h
+
+TextChangeOrder.o: TextChangeOrder.cc TextChangeOrder.h
 
 clean:
 	rm -f $(OBJECTS) $(BINARIES)

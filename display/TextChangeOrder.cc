@@ -27,6 +27,17 @@ int SpacedFont::getDefaultLetterSpacing() {
 
 rgb_matrix::Font* SpacedFont::defaultFontPtr = nullptr;
 
+TextChangeOrder::TextChangeOrder()
+    :
+    spacedFont(),
+    foregroundColor(getDefaultForegroundColor()),
+    backgroundColor(getDefaultBackgroundColor()),
+    velocity(0.0f),
+    velocityIsHorizontal(true),
+    text()
+{}
+
+
 TextChangeOrder::TextChangeOrder(const char* aText)
     :
     spacedFont(),
@@ -45,6 +56,16 @@ TextChangeOrder::TextChangeOrder(const std::string& aString)
     velocity(0.0f),
     velocityIsHorizontal(true),
     text(aString.c_str())
+{}
+
+TextChangeOrder::TextChangeOrder(SpacedFont aSpacedFont, const char* aText)
+    :
+    spacedFont(aSpacedFont),
+    foregroundColor(getDefaultForegroundColor()),
+    backgroundColor(getDefaultBackgroundColor()),
+    velocity(0.0f),
+    velocityIsHorizontal(true),
+    text(aText)
 {}
 
 rgb_matrix::Color TextChangeOrder::getDefaultForegroundColor() {
