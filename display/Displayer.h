@@ -33,8 +33,12 @@ class Displayer {
     void setYOrigin(const int yOrig) {y_origin = yOrig;}
     [[nodiscard]] int getYOrigin() const {return y_origin;}
 
+    void setAllowIdleMarkers(bool isAllow) {allowIdleMarkers = isAllow;}
+    [[nodiscard]] int getAllowIdleMarkers() const {return allowIdleMarkers;}
+
     private:
     bool displayerOK;   // if false, every method should presume other attributes are suspect (e.g. canvas NULL)
+    bool allowIdleMarkers;
 
     uint8_t defaultPWMBits;
     rgb_matrix::RGBMatrix *canvas;

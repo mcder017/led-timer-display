@@ -29,7 +29,8 @@ static void add_micros(struct timespec *accumulator, long micros) {
 
 
 Displayer::Displayer(RGBMatrix::Options& aMatrix_options, rgb_matrix::RuntimeOptions& aRuntime_opt)
-    : x_origin(0),
+    : allowIdleMarkers(true),
+      x_origin(0),
       y_origin(0),
 
       currChangeOrder(),
@@ -277,8 +278,9 @@ void Displayer::iota() {
   }
   else {
     // no active change order
-    const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 30;
-    if (currChangeOrder.getString().empty()
+    const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
+    if (allowIdleMarkers
+        && currChangeOrder.getString().empty()
         && std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
       dotCorners();
     }
