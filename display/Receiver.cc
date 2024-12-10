@@ -84,6 +84,7 @@ void Receiver::setupSocket() {
         printf("Listening on port %d...\n", port_number);
     }
 
+    //TODO timeout, move to Run loop, and use timeout on waiting for message as well to watch for new connections
     clilen = sizeof(cli_addr);
     newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
     if (newsockfd < 0) {

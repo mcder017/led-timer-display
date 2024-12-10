@@ -6,7 +6,7 @@
 #include "bdf-10x20-local.h"
 
 #include "graphics.h"
-#include <math.h>    // for fabs
+#include <cmath>    // for fabs
 
 rgb_matrix::Font* SpacedFont::getDefaultFontPtr() {
     if (defaultFontPtr == nullptr) {
@@ -21,8 +21,8 @@ rgb_matrix::Font* SpacedFont::getDefaultFontPtr() {
 }
 
 int SpacedFont::getDefaultLetterSpacing() {
-  const int DEFAULT_SPACING = -1;    // associated with default font
-  return DEFAULT_SPACING;
+    constexpr int DEFAULT_SPACING = -1;    // associated with default font
+    return DEFAULT_SPACING;
 }
 
 rgb_matrix::Font* SpacedFont::defaultFontPtr = nullptr;
@@ -34,6 +34,7 @@ TextChangeOrder::TextChangeOrder()
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
+    velocityIsSingleScroll(true),
     text()
 {}
 
@@ -45,6 +46,7 @@ TextChangeOrder::TextChangeOrder(const char* aText)
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
+    velocityIsSingleScroll(true),
     text(aText)
     {}
 
@@ -55,7 +57,8 @@ TextChangeOrder::TextChangeOrder(const std::string& aString)
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
-    text(aString.c_str())
+    velocityIsSingleScroll(true),
+    text(aString)
 {}
 
 TextChangeOrder::TextChangeOrder(SpacedFont aSpacedFont, const char* aText)
@@ -65,15 +68,16 @@ TextChangeOrder::TextChangeOrder(SpacedFont aSpacedFont, const char* aText)
     backgroundColor(getDefaultBackgroundColor()),
     velocity(0.0f),
     velocityIsHorizontal(true),
+    velocityIsSingleScroll(true),
     text(aText)
 {}
 
 rgb_matrix::Color TextChangeOrder::getDefaultForegroundColor() {
-    return rgb_matrix::Color(255, 0, 0);    // red
+    return {255, 0, 0};    // red
 }
 
 rgb_matrix::Color TextChangeOrder::getDefaultBackgroundColor() {
-    return rgb_matrix::Color(0, 0, 0);    // black
+    return {0, 0, 0};    // black
 }
 
 bool TextChangeOrder::isScrolling() const {

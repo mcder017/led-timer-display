@@ -153,6 +153,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
         y = canvas->height();
       }
     }
+    //printf("Scrolling request... startX=%d, startY=%d, vel=%f, dir=%d, %s\n",x,y,currChangeOrder.getVelocity(),scroll_direction,currChangeOrder.getVelocityIsHorizontal() ? "horizontal" : "vertical");//DEBUG
   }
   else {
     x = x_origin;

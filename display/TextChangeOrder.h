@@ -61,9 +61,9 @@ class TextChangeOrder {
     SpacedFont spacedFont;
     rgb_matrix::Color foregroundColor;  // default is an extreme color (255 for some subset of R,G,B)
     rgb_matrix::Color backgroundColor;  // default black
-    float velocity;                     // 0.0=no motion.  1.0=approx one character width per second (left=positive)
-    bool velocityIsHorizontal;          // true for horizontal scrolling, false for vertical
-    bool velocityIsSingleScroll;        // if true, stop after scrolling on
+    float velocity;                     // default is 0.0=no motion.  1.0=approx one character width per second (left=positive)
+    bool velocityIsHorizontal;          // default is true for horizontal scrolling. Set false for vertical
+    bool velocityIsSingleScroll;        // default is true to stop after scrolling on
 
     std::string text;
 
