@@ -37,6 +37,7 @@ class TextChangeOrder {
     explicit TextChangeOrder(const char* aText);   // default font, spacing,  colors, speed
     explicit TextChangeOrder(std::string  aString);   // default font, spacing, colors, speed
     TextChangeOrder(SpacedFont aSpacedFont, const char* aText);   // default colors
+    TextChangeOrder(const TextChangeOrder& aTextChangeOrder) = default;
 
     void setSpacedFont(const SpacedFont& aFont) {spacedFont = aFont;}
     [[nodiscard]] SpacedFont getSpacedFont() const {return spacedFont;}
@@ -51,7 +52,7 @@ class TextChangeOrder {
     void setString(const std::string& aString) {text = aString;}
     [[nodiscard]] const char* getText() const { return text.c_str(); }
     std::string getString() const {return text;}
-    [[nodiscard]] bool orderDoneHasEmptyDisplay() const {return text.empty() || velocityScrollType == SINGLE_ONOFF;}
+    [[nodiscard]] bool orderDoneHasEmptyDisplay() const;    // is display empty when the order is marked Done
 
     void setVelocity(float aVelocity) {velocity = aVelocity;}
     [[nodiscard]] float getVelocity() const { return velocity; }
@@ -60,7 +61,7 @@ class TextChangeOrder {
     void setVelocityIsHorizontal(bool aVelocityIsHorizontal) {velocityIsHorizontal = aVelocityIsHorizontal;}
     [[nodiscard]] bool getVelocityIsHorizontal() const { return velocityIsHorizontal; }
 
-
+    // scroll type is not sufficient to get scrolling... it is only applied if the velocity is non-zero
     void setVelocityScrollType(ScrollType aVelocityScrollType) {velocityScrollType = aVelocityScrollType;}
     [[nodiscard]] ScrollType getVelocityScrollType() const { return velocityScrollType; }
 

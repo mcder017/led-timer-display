@@ -122,20 +122,27 @@ static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedF
   myDisplayer.setYOrigin(origY);  // restore config
 
   // if previously displayed order ends onscreen, redisplay
-  switch (origDisplayedOrder.getVelocityScrollType()) {
-    case TextChangeOrder::SINGLE_ONOFF:
-      // no redisplay
-      break;
+  if (origDisplayedOrder.isScrolling()) { // velocity non-zero
+    switch (origDisplayedOrder.getVelocityScrollType()) {
+      case TextChangeOrder::SINGLE_ONOFF:
+        // no redisplay
+        break;
 
-    case TextChangeOrder::SINGLE_ON:
-      origDisplayedOrder.setVelocity(0);  // modify to skip rescrolling. just re-display
-      myDisplayer.startChangeOrder(origDisplayedOrder);
-      break;
+      case TextChangeOrder::SINGLE_ON:
+        origDisplayedOrder.setVelocity(0);  // modify to skip rescrolling. just re-display
+        myDisplayer.startChangeOrder(origDisplayedOrder);
+        break;
 
-    case TextChangeOrder::CONTINUOUS: // resume continuous scroll
-    default:
-      myDisplayer.startChangeOrder(origDisplayedOrder);
-      break;
+      case TextChangeOrder::CONTINUOUS: // resume continuous scroll
+        myDisplayer.startChangeOrder(origDisplayedOrder);
+        break;
+      default:
+        myDisplayer.startChangeOrder(origDisplayedOrder);
+        break;
+    }
+  }
+  else {  // not scrolling
+    myDisplayer.startChangeOrder(origDisplayedOrder);
   }
 }
 

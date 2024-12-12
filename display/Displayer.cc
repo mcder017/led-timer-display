@@ -198,7 +198,7 @@ void Displayer::iota() {
   constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
 
   if (!currChangeOrderDone) {
-    if (!currChangeOrder.getString().empty()) {
+    if (!currChangeOrder.orderDoneHasEmptyDisplay()) {
       isIdle = false;
     }
 
@@ -229,6 +229,13 @@ void Displayer::iota() {
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, nullptr);
       }
     }
+
+    // if asked, overlay "disconnected" marker dots on whatever is displayed
+    // regardless, update flag indicating whether the dots are applied
+    if (isDisconnected) {
+      dotCorners(MARK_DISCONNECTED_COLOR, offscreen_canvas);
+    }
+    markedDisconnected = isDisconnected;
 
     // Swap the offscreen_canvas with canvas on vsync, avoids flickering
     offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
@@ -310,13 +317,6 @@ void Displayer::iota() {
       // Text appeared.  Done.
       setChangeDone();
     }
-
-    // if asked, overlay "disconnected" marker dots on whatever is displayed
-    // regardless, update flag indicating whether the dots are applied
-    if (isDisconnected) {
-      dotCorners(MARK_DISCONNECTED_COLOR, offscreen_canvas);
-    }
-    markedDisconnected = isDisconnected;
   }
   else {  // no active change order
     // if requested, and idled with blank display for length of time, mark dots on corners

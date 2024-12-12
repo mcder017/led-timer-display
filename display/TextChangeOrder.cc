@@ -85,3 +85,8 @@ bool TextChangeOrder::isScrolling() const {
   const float eps = 0.0001f;
   return fabs((double)velocity) > eps;
 }
+
+bool TextChangeOrder::orderDoneHasEmptyDisplay() const {
+    return text.empty()
+            || (isScrolling() && velocityScrollType == SINGLE_ONOFF);  // scrolling (velocity not zero), but this scroll type ends with empty display
+}
