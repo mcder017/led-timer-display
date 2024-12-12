@@ -222,16 +222,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  SpacedFont smallSpacedFont;
-  {
-    rgb_matrix::Font smallFont;
-    if (smallFont.ReadFont(BDF_5X7_STRING)) {
-      smallSpacedFont.fontPtr = &smallFont;
-    }
-    else {
-      fprintf(stderr, "Couldn't read internal font '%s'\n", BDF_5X7_STRING);
-    }
-    smallSpacedFont.letterSpacing = 0;
+  SpacedFont smallSpacedFont(nullptr,0);
+  rgb_matrix::Font smallFont;
+  if (smallFont.ReadFont(BDF_5X7_STRING)) {
+    smallSpacedFont.fontPtr = &smallFont;
+  }
+  else {
+    fprintf(stderr, "Couldn't read internal font '%s'\n", BDF_5X7_STRING);
   }
 
   Displayer myDisplayer(matrix_options, runtime_opt);
@@ -241,9 +238,9 @@ int main(int argc, char *argv[]) {
   Receiver myReceiver(port_number);
   myReceiver.Start();
 
-
   MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed,
                               set_horizontal_scroll, set_scroll_type);
+
 
   // initial display of address connection text (we are awake, but perhaps not yet connected)
   showLocalAddresses(myDisplayer, myReceiver, smallSpacedFont);

@@ -11,6 +11,7 @@
 struct SpacedFont {
     SpacedFont() : fontPtr(getDefaultFontPtr()), letterSpacing(getDefaultLetterSpacing()) {}
     SpacedFont(rgb_matrix::Font* aFontPtr, int aLetterSpacing) : fontPtr(aFontPtr), letterSpacing(aLetterSpacing) {}
+    SpacedFont(const SpacedFont& aSpacedFont) = default;
 
     rgb_matrix::Font* fontPtr;
     int letterSpacing;
