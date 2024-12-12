@@ -120,6 +120,22 @@ static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedF
   myDisplayer.setYOrigin(origY);  // restore config
 }
 
+static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver, const SpacedFont& aFont, bool& currIsNoKnown, const bool forceReport = false) {
+  // update display's marker of "no connection" status
+  const bool newIsNoKnownConnections = myReceiver.isNoKnownConnections();
+
+  if (currIsNoKnown != newIsNoKnownConnections || forceReport) {
+    currIsNoKnown = newIsNoKnownConnections;
+    myDisplayer.setMarkDisconnected(currIsNoKnown);  // if true, dots indicate known disconnected status
+
+    // use text to indicate new connection
+    if (!currIsNoKnown) {
+      showNewConnection(myDisplayer, aFont);
+    }
+  }
+
+}
+
 int main(int argc, char *argv[]) {
   rgb_matrix::RGBMatrix::Options matrix_options;
   rgb_matrix::RuntimeOptions runtime_opt;
@@ -256,18 +272,10 @@ int main(int argc, char *argv[]) {
   }
 
   bool currIsNoKnownConnections = false;
-  while (!interrupt_received) {
-    // update display's marker of "no connection" status
-    const bool newIsNoKnownConnections = myReceiver.isNoKnownConnections();
-    if (currIsNoKnownConnections != newIsNoKnownConnections) {
-      currIsNoKnownConnections = newIsNoKnownConnections;
-      myDisplayer.setMarkDisconnected(currIsNoKnownConnections);  // if true, dots indicate known disconnected status
+  updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections, true);
 
-      // use text to indicate new connection
-      if (!currIsNoKnownConnections) {
-        showNewConnection(myDisplayer, smallSpacedFont);
-      }
-    }
+  while (!interrupt_received) {
+    updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections);
 
     // if new valid message,  decide what to display
     if (myReceiver.isPendingMessage()) {

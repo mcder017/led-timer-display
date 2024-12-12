@@ -98,7 +98,6 @@ void Receiver::setupSocket() {
         printf("Setting up socket...\n");
     }
 
-    //TODO support later attempts to start TCP port with e.g. RTPro, in case cable plugged in after power turned on
     //TODO support UDP port messaging, e.g. from SplitSecondTiming software
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -140,7 +139,6 @@ void Receiver::setupSocket() {
 }
 
 void Receiver::checkAndAcceptConnection() {
-    rgb_matrix::MutexLock l(&mutex_);
     if (newsockfd < 0) {
         // size 1 "set" of socket descriptors
         struct pollfd fds[1];
@@ -151,7 +149,10 @@ void Receiver::checkAndAcceptConnection() {
 
         if (poll(fds, 1, timeout_poll) > 0) {
             clilen = sizeof(cli_addr);
-            newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+            {
+                rgb_matrix::MutexLock l(&mutex_);   // lock before changing value in case being read externally
+                newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+            }
             if (newsockfd >= 0 && isatty(STDIN_FILENO)) {
                 // Only give a message if we are interactive. If connected via pipe, be quiet
                 printf("Connected to:%s\n",(cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)"));
@@ -161,8 +162,6 @@ void Receiver::checkAndAcceptConnection() {
 }
 
 void Receiver::checkAndAppendData(std::string& unprocessed_buffer) {
-    rgb_matrix::MutexLock l(&mutex_);
-
     // look, but do not wait if no data ready
     const int num_read = recv(newsockfd, socket_buffer, PROTOCOL_MESSAGE_MAX_LENGTH, MSG_DONTWAIT);
     if (num_read > 0) {
@@ -178,8 +177,11 @@ void Receiver::checkAndAppendData(std::string& unprocessed_buffer) {
         unprocessed_buffer.append(socket_buffer, num_read);
     }
     else if (num_read == 0) {   // client indicates end of connection
-        close(newsockfd);
-        newsockfd = -1;
+        {
+            rgb_matrix::MutexLock l(&mutex_);   // lock before changing value in case being read externally
+            close(newsockfd);
+            newsockfd = -1;
+        }
         if (isatty(STDIN_FILENO)) {
             // Only give a message if we are interactive. If connected via pipe, be quiet
             printf("Connection closed by client\n");
@@ -230,7 +232,6 @@ void Receiver::parseLineToQueue(const char* single_line_buffer) {
 }
 
 bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
-    rgb_matrix::MutexLock l(&mutex_);
 
     const unsigned int char_in_line = strlen(single_line_buffer);
     bool possible_alge_message = true;
@@ -295,11 +296,16 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
     }
 
     if (!possible_alge_message) {
+        bool doClear = false;
+        {
+            rgb_matrix::MutexLock l(&mutex_);
+            doClear = clearDisplayOnUnrecognizedMessage;    // can be set by external thread
+        }
         fprintf(stderr, "Discarding unrecognized message%s:%s\n",
-            clearDisplayOnUnrecognizedMessage ? " (and clear display)" : "",
+            doClear ? " (and clear display)" : "",
             nonprintableToHexadecimal(single_line_buffer).c_str());
 
-        if (clearDisplayOnUnrecognizedMessage) queueReceivedMessage(RawMessage(SIMPLE_TEXT, ""));
+        if (doClear) queueReceivedMessage(RawMessage(SIMPLE_TEXT, ""));
     }
     else {
         // if appears to be valid, queue for processing by other classes
@@ -317,7 +323,6 @@ void Receiver::Run() {
     while (running()) { // handles lock within the call
         checkAndAcceptConnection();
 
-        rgb_matrix::MutexLock l(&mutex_);
         if (newsockfd >= 0) {     // connection is open
             checkAndAppendData(tcp_unprocessed);
 
@@ -333,7 +338,7 @@ void Receiver::Run() {
     // close sockets
     // (main loop could be wrapped in try/catch)
     {
-        rgb_matrix::MutexLock l(&mutex_);
+        rgb_matrix::MutexLock l(&mutex_);   // lock before changing value, in case being read externally
         if (newsockfd >= 0) {close(newsockfd); newsockfd = -1;}
         if (sockfd >= 0) {close(sockfd); sockfd = -1;}
     }
