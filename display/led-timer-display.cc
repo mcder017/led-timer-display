@@ -87,7 +87,7 @@ static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver, con
 
   if (!local_addresses.empty()) {
     TextChangeOrder addr_message(aSpacedFont, local_addresses.c_str());
-    addr_message.setVelocity(-7.0);
+    addr_message.setVelocity(-12.0);
     addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
     addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
     const int origY = myDisplayer.getYOrigin();
@@ -113,11 +113,30 @@ static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedF
   const int origY = myDisplayer.getYOrigin();
   myDisplayer.setYOrigin(0);  // ensure ok for small font
 
+  TextChangeOrder origDisplayedOrder = myDisplayer.getChangeOrder();  // copy the order
+
   myDisplayer.startChangeOrder(addr_message);
   while (!myDisplayer.isChangeOrderDone()) {
     myDisplayer.iota();
   }
   myDisplayer.setYOrigin(origY);  // restore config
+
+  // if previously displayed order ends onscreen, redisplay
+  switch (origDisplayedOrder.getVelocityScrollType()) {
+    case TextChangeOrder::SINGLE_ONOFF:
+      // no redisplay
+      break;
+
+    case TextChangeOrder::SINGLE_ON:
+      origDisplayedOrder.setVelocity(0);  // modify to skip rescrolling. just re-display
+      myDisplayer.startChangeOrder(origDisplayedOrder);
+      break;
+
+    case TextChangeOrder::CONTINUOUS: // resume continuous scroll
+    default:
+      myDisplayer.startChangeOrder(origDisplayedOrder);
+      break;
+  }
 }
 
 static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver, const SpacedFont& aFont, bool& currIsNoKnown, const bool forceReport = false) {
@@ -126,6 +145,12 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
 
   if (currIsNoKnown != newIsNoKnownConnections || forceReport) {
     currIsNoKnown = newIsNoKnownConnections;
+    if (currIsNoKnown) {
+      if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Displaying disconnection markers\n");
+      }
+    }
     myDisplayer.setMarkDisconnected(currIsNoKnown);  // if true, dots indicate known disconnected status
 
     // use text to indicate new connection

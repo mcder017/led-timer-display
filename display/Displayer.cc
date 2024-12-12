@@ -198,7 +198,9 @@ void Displayer::iota() {
   constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
 
   if (!currChangeOrderDone) {
-    isIdle = false;
+    if (!currChangeOrder.getString().empty()) {
+      isIdle = false;
+    }
 
     // clear offline canvas
     offscreen_canvas->Fill(currChangeOrder.getBackgroundColor().r,
@@ -320,7 +322,7 @@ void Displayer::iota() {
     // if requested, and idled with blank display for length of time, mark dots on corners
     if (allowIdleMarkers
         && !isIdle
-        && currChangeOrder.getString().empty()
+        && currChangeOrder.orderDoneHasEmptyDisplay()
         && std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
 
       isIdle = true;

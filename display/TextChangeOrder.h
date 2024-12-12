@@ -51,6 +51,7 @@ class TextChangeOrder {
     void setString(const std::string& aString) {text = aString;}
     [[nodiscard]] const char* getText() const { return text.c_str(); }
     std::string getString() const {return text;}
+    [[nodiscard]] bool orderDoneHasEmptyDisplay() const {return text.empty() || velocityScrollType == SINGLE_ONOFF;}
 
     void setVelocity(float aVelocity) {velocity = aVelocity;}
     [[nodiscard]] float getVelocity() const { return velocity; }
