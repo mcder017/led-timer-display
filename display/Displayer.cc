@@ -30,6 +30,9 @@ static void add_micros(struct timespec *accumulator, long micros) {
 
 Displayer::Displayer(RGBMatrix::Options& aMatrix_options, rgb_matrix::RuntimeOptions& aRuntime_opt)
     : allowIdleMarkers(true),
+      isIdle(false),
+      isDisconnected(false),
+      markedDisconnected(false),
       x_origin(0),
       y_origin(0),
 
@@ -176,28 +179,26 @@ inline void Displayer::setChangeDone(bool isChangeDone) {
   }
 }
 
-void Displayer::dotCorners() {
-  last_change_time = std::time(nullptr);
+void Displayer::dotCorners(const rgb_matrix::Color &dotColor, rgb_matrix::Canvas *aCanvas) {
+  //last_change_time = std::time(nullptr);  // dotting corners with markers does NOT count as "no longer idle"
 
-  // clear offline canvas
-  offscreen_canvas->Fill(currChangeOrder.getBackgroundColor().r,
-                         currChangeOrder.getBackgroundColor().g,
-                         currChangeOrder.getBackgroundColor().b);
+  aCanvas->SetPixel(0,0, dotColor.r, dotColor.g, dotColor.b);
+  aCanvas->SetPixel(0,offscreen_canvas->height()-1, dotColor.r, dotColor.g, dotColor.b);
+  aCanvas->SetPixel(offscreen_canvas->width()-1,0, dotColor.r, dotColor.g, dotColor.b);
+  aCanvas->SetPixel(offscreen_canvas->width()-1,offscreen_canvas->height()-1, dotColor.r, dotColor.g, dotColor.b);
 
-  rgb_matrix::Color red(255, 0, 0);
-  offscreen_canvas->SetPixel(0,0, red.r, red.g, red.b);
-  offscreen_canvas->SetPixel(0,offscreen_canvas->height()-1, red.r, red.g, red.b);
-  offscreen_canvas->SetPixel(offscreen_canvas->width()-1,0, red.r, red.g, red.b);
-  offscreen_canvas->SetPixel(offscreen_canvas->width()-1,offscreen_canvas->height()-1, red.r, red.g, red.b);
-
-  // Swap the offscreen_canvas with canvas on vsync, avoids flickering
-  offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
 }
 
 void Displayer::iota() {
   if (!displayerOK) return;
 
+  constexpr rgb_matrix::Color MARK_DISCONNECTED_COLOR(0,255,0); // use an extreme color to avoid messing up pwmbits
+  constexpr rgb_matrix::Color UNMARK_DISCONNECTED_COLOR(0,0,0); // since we can't query other dot colors, just go black
+  constexpr rgb_matrix::Color MARK_IDLE_COLOR(255,0,0); // use an extreme color to avoid messing up pwmbits
+  constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
+
   if (!currChangeOrderDone) {
+    isIdle = false;
 
     // clear offline canvas
     offscreen_canvas->Fill(currChangeOrder.getBackgroundColor().r,
@@ -307,14 +308,31 @@ void Displayer::iota() {
       // Text appeared.  Done.
       setChangeDone();
     }
+
+    // if asked, overlay "disconnected" marker dots on whatever is displayed
+    // regardless, update flag indicating whether the dots are applied
+    if (isDisconnected) {
+      dotCorners(MARK_DISCONNECTED_COLOR, offscreen_canvas);
+    }
+    markedDisconnected = isDisconnected;
   }
-  else {
-    // no active change order
-    const time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
+  else {  // no active change order
+    // if requested, and idled with blank display for length of time, mark dots on corners
     if (allowIdleMarkers
+        && !isIdle
         && currChangeOrder.getString().empty()
         && std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE) {
-      dotCorners();
+
+      isIdle = true;
+      dotCorners(MARK_IDLE_COLOR, canvas);  // directly change display to show dots
+    }
+
+    // if change in whether disconnected dots should be visible, update display and internal flag indicating presence of dots
+    if (isDisconnected != markedDisconnected) {
+      // apply new dot color over the top of whatever was displayed
+      const rgb_matrix::Color applyColor = isDisconnected ? MARK_DISCONNECTED_COLOR : UNMARK_DISCONNECTED_COLOR;
+      dotCorners(applyColor, canvas);  // directly change display to show new dot color
+      markedDisconnected = isDisconnected;
     }
   }
 }
