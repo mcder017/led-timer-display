@@ -325,6 +325,11 @@ void Displayer::iota() {
 
       isIdle = true;
       dotCorners(MARK_IDLE_COLOR, canvas);  // directly change display to show dots
+      if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Idle marked\n");
+      }
+
     }
 
     // if change in whether disconnected dots should be visible, update display and internal flag indicating presence of dots
@@ -333,6 +338,10 @@ void Displayer::iota() {
       const rgb_matrix::Color applyColor = isDisconnected ? MARK_DISCONNECTED_COLOR : UNMARK_DISCONNECTED_COLOR;
       dotCorners(applyColor, canvas);  // directly change display to show new dot color
       markedDisconnected = isDisconnected;
+      if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Known disconnected marked\n");
+      }
     }
   }
 }
