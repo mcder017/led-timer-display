@@ -192,9 +192,9 @@ void Displayer::dotCorners(const rgb_matrix::Color &dotColor, rgb_matrix::Canvas
 void Displayer::iota() {
   if (!displayerOK) return;
 
-  constexpr rgb_matrix::Color MARK_DISCONNECTED_COLOR(0,255,0); // use an extreme color to avoid messing up pwmbits
-  constexpr rgb_matrix::Color UNMARK_DISCONNECTED_COLOR(0,0,0); // since we can't query other dot colors, just go black
-  constexpr rgb_matrix::Color MARK_IDLE_COLOR(255,0,0); // use an extreme color to avoid messing up pwmbits
+  const  rgb_matrix::Color MARK_DISCONNECTED_COLOR(0,255,0); // use an extreme color to avoid messing up pwmbits
+  const  rgb_matrix::Color UNMARK_DISCONNECTED_COLOR(0,0,0); // since we can't query other dot colors, just go black
+  const  rgb_matrix::Color MARK_IDLE_COLOR(255,0,0); // use an extreme color to avoid messing up pwmbits
   constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
 
   if (!currChangeOrderDone) {
