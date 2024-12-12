@@ -86,6 +86,7 @@ void Displayer::updatePWMBits() {
     const uint8_t targetPWMBits = isExtremeColors() ? EXTREME_COLORS_PWM_BITS : defaultPWMBits;
     if (canvas->pwmbits() != targetPWMBits) {
       canvas->SetPWMBits(targetPWMBits);
+      offscreen_canvas->SetPWMBits(targetPWMBits);
     }
 }
 
@@ -108,6 +109,9 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
   last_change_time = std::time(nullptr);
 
   currChangeOrder = aChangeOrder;
+
+  // depending on colors and brightness, use fewer pwm bits (for faster refresh)
+  updatePWMBits();
 
   // ensure text can be displayed
   constexpr char UNPRINTABLE_CHAR_REPL = '&';
@@ -222,9 +226,6 @@ void Displayer::iota() {
         clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, nullptr);
       }
     }
-
-    // depending on colors and brightness, use fewer pwm bits (for faster refresh)
-    updatePWMBits();
 
     // Swap the offscreen_canvas with canvas on vsync, avoids flickering
     offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
