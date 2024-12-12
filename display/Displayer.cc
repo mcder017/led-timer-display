@@ -223,6 +223,9 @@ void Displayer::iota() {
       }
     }
 
+    // depending on colors and brightness, use fewer pwm bits (for faster refresh)
+    updatePWMBits();
+
     // Swap the offscreen_canvas with canvas on vsync, avoids flickering
     offscreen_canvas = canvas->SwapOnVSync(offscreen_canvas);
 
