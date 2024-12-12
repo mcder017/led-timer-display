@@ -66,7 +66,7 @@ public:
           rgb_matrix::MutexLock l(&mutex_);
           clearDisplayOnUnrecognizedMessage = doClear;
      }
-     [[nodiscard]] bool isClearOnUnrecognizedMessage() const {
+     [[nodiscard]] bool isClearOnUnrecognizedMessage() {
           rgb_matrix::MutexLock l(&mutex_);
           return clearDisplayOnUnrecognizedMessage;
      }
