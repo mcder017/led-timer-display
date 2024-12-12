@@ -48,7 +48,7 @@ public:
      // Implement this and run while running() returns true.
      void Run() override;
 
-     bool isRunning() {return running();}
+     bool isRunning() {return running();}    // sets MutexLock internally
 
      bool isPendingMessage() {
           rgb_matrix::MutexLock l(&mutex_);
@@ -62,9 +62,19 @@ public:
           return pendingMessage;
      }
 
-     void setClearOnUnrecognizedMessage(bool doClear) {clearDisplayOnUnrecognizedMessage = doClear;}
-     [[nodiscard]] bool isClearOnUnrecognizedMessage() const {return clearDisplayOnUnrecognizedMessage;}
+     void setClearOnUnrecognizedMessage(bool doClear) {
+          rgb_matrix::MutexLock l(&mutex_);
+          clearDisplayOnUnrecognizedMessage = doClear;
+     }
+     [[nodiscard]] bool isClearOnUnrecognizedMessage() const {
+          rgb_matrix::MutexLock l(&mutex_);
+          return clearDisplayOnUnrecognizedMessage;
+     }
 
+     bool isNoKnownConnections() {
+          rgb_matrix::MutexLock l(&mutex_);
+          return newsockfd < 0;
+     }
      std::string getLocalAddresses();
 
      static std::string nonprintableToHexadecimal(const char* str);
@@ -87,13 +97,14 @@ private:
      bool running_;                          // use MutexLock to allow thread-safe read&write
      std::deque<RawMessage> message_queue;   // use MutexLock to allow thread-safe read&write
 
-     int sockfd, newsockfd;
+     int sockfd;
+     int newsockfd;                          // use MutexLock to allow thread-safe read&write
      socklen_t clilen;
      char socket_buffer[PROTOCOL_MESSAGE_MAX_LENGTH+1];     // include room for end-of-string null
      struct sockaddr_in serv_addr, cli_addr;
      int port_number;
 
-     bool clearDisplayOnUnrecognizedMessage;
+     bool clearDisplayOnUnrecognizedMessage; // use MutexLock to allow thread-safe read&write
 
      void setupSocket();
      void checkAndAcceptConnection();

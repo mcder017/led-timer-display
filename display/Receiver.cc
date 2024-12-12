@@ -140,6 +140,7 @@ void Receiver::setupSocket() {
 }
 
 void Receiver::checkAndAcceptConnection() {
+    rgb_matrix::MutexLock l(&mutex_);
     if (newsockfd < 0) {
         // size 1 "set" of socket descriptors
         struct pollfd fds[1];
@@ -160,6 +161,8 @@ void Receiver::checkAndAcceptConnection() {
 }
 
 void Receiver::checkAndAppendData(std::string& unprocessed_buffer) {
+    rgb_matrix::MutexLock l(&mutex_);
+
     // look, but do not wait if no data ready
     const int num_read = recv(newsockfd, socket_buffer, PROTOCOL_MESSAGE_MAX_LENGTH, MSG_DONTWAIT);
     if (num_read > 0) {
@@ -227,6 +230,8 @@ void Receiver::parseLineToQueue(const char* single_line_buffer) {
 }
 
 bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer) {
+    rgb_matrix::MutexLock l(&mutex_);
+
     const unsigned int char_in_line = strlen(single_line_buffer);
     bool possible_alge_message = true;
 
@@ -312,6 +317,7 @@ void Receiver::Run() {
     while (running()) { // handles lock within the call
         checkAndAcceptConnection();
 
+        rgb_matrix::MutexLock l(&mutex_);
         if (newsockfd >= 0) {     // connection is open
             checkAndAppendData(tcp_unprocessed);
 
@@ -326,8 +332,11 @@ void Receiver::Run() {
 
     // close sockets
     // (main loop could be wrapped in try/catch)
-    if (newsockfd >= 0) {close(newsockfd); newsockfd = -1;}
-    if (sockfd >= 0) {close(sockfd); sockfd = -1;}
+    {
+        rgb_matrix::MutexLock l(&mutex_);
+        if (newsockfd >= 0) {close(newsockfd); newsockfd = -1;}
+        if (sockfd >= 0) {close(sockfd); sockfd = -1;}
+    }
 
     if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
