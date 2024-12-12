@@ -42,6 +42,15 @@ Receiver::~Receiver() {
 
 }
 
+void Receiver::Start() {
+    {
+      rgb_matrix::MutexLock l(&mutex_);
+      running_ = true;
+    }
+    // avoid core 3 (prefer core 0,1,2) so not on core with RGBMatrix
+    Thread::Start(0,(1<<2) | (1<<1) | (1<<0));
+}
+
 std::string Receiver::getLocalAddresses() {
     std::string accum_addresses;    // start empty
 

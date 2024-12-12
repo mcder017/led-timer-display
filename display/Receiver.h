@@ -37,13 +37,7 @@ public:
      explicit Receiver(int aPort_number);
      ~Receiver() override;
 
-     virtual void Start() {
-          {
-               rgb_matrix::MutexLock l(&mutex_);
-               running_ = true;
-          }
-          Thread::Start(0,0);
-     }
+     virtual void Start();
 
      // Stop the thread at the next possible time Run() checks the running_ flag.
      void Stop() {
