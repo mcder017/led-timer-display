@@ -81,29 +81,43 @@ static void do_pause() {
   sleep(3);
 }
 
-static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver) {
-  rgb_matrix::Font smallFont;
-  if (smallFont.ReadFont(BDF_5X7_STRING)) {
-    SpacedFont smallSpacedFont;
-    smallSpacedFont.fontPtr = &smallFont;
+static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver, const SpacedFont& aSpacedFont) {
 
-    std::string local_addresses = myReceiver.getLocalAddresses();
+  std::string local_addresses = myReceiver.getLocalAddresses();
 
-    if (!local_addresses.empty()) {
-      TextChangeOrder addr_message(smallSpacedFont, local_addresses.c_str());
-      addr_message.setVelocity(-7.0);
-      addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
-      addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
-      const int origY = myDisplayer.getYOrigin();
-      myDisplayer.setYOrigin(0);  // ensure ok for small font
+  if (!local_addresses.empty()) {
+    TextChangeOrder addr_message(aSpacedFont, local_addresses.c_str());
+    addr_message.setVelocity(-7.0);
+    addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
+    addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
+    const int origY = myDisplayer.getYOrigin();
+    myDisplayer.setYOrigin(0);  // ensure ok for small font
 
-      myDisplayer.startChangeOrder(addr_message);
-      while (!myDisplayer.isChangeOrderDone()) {
-        myDisplayer.iota();
-      }
-      myDisplayer.setYOrigin(origY);  // restore config
+    myDisplayer.startChangeOrder(addr_message);
+    while (!myDisplayer.isChangeOrderDone()) {
+      myDisplayer.iota();
     }
+    myDisplayer.setYOrigin(origY);  // restore config
   }
+}
+
+static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedFont) {
+
+  std::string connectionText = "Connected";
+
+  TextChangeOrder addr_message(aSpacedFont, connectionText.c_str());
+  addr_message.setVelocity(-2.0);
+  addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
+  addr_message.setVelocityIsHorizontal(false);
+  addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
+  const int origY = myDisplayer.getYOrigin();
+  myDisplayer.setYOrigin(0);  // ensure ok for small font
+
+  myDisplayer.startChangeOrder(addr_message);
+  while (!myDisplayer.isChangeOrderDone()) {
+    myDisplayer.iota();
+  }
+  myDisplayer.setYOrigin(origY);  // restore config
 }
 
 int main(int argc, char *argv[]) {
@@ -208,6 +222,18 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  SpacedFont smallSpacedFont;
+  {
+    rgb_matrix::Font smallFont;
+    if (smallFont.ReadFont(BDF_5X7_STRING)) {
+      smallSpacedFont.fontPtr = &smallFont;
+    }
+    else {
+      fprintf(stderr, "Couldn't read internal font '%s'\n", BDF_5X7_STRING);
+    }
+    smallSpacedFont.letterSpacing = 0;
+  }
+
   Displayer myDisplayer(matrix_options, runtime_opt);
   myDisplayer.setXOrigin(x_orig);
   myDisplayer.setYOrigin(y_orig);
@@ -220,7 +246,7 @@ int main(int argc, char *argv[]) {
                               set_horizontal_scroll, set_scroll_type);
 
   // initial display of address connection text (we are awake, but perhaps not yet connected)
-  showLocalAddresses(myDisplayer, myReceiver);
+  showLocalAddresses(myDisplayer, myReceiver, smallSpacedFont);
 
   // now show text from command line options
   myFormatter.handleMessage(Receiver::RawMessage(Receiver::Protocol::SIMPLE_TEXT, line));
@@ -232,7 +258,20 @@ int main(int argc, char *argv[]) {
     printf("Press CTRL-C for exit.\n");
   }
 
+  bool currIsNoKnownConnections = false;
   while (!interrupt_received) {
+    // update display's marker of "no connection" status
+    const bool newIsNoKnownConnections = myReceiver.isNoKnownConnections();
+    if (currIsNoKnownConnections != newIsNoKnownConnections) {
+      currIsNoKnownConnections = newIsNoKnownConnections;
+      myDisplayer.setMarkDisconnected(currIsNoKnownConnections);  // if true, dots indicate known disconnected status
+
+      // use text to indicate new connection
+      if (!currIsNoKnownConnections) {
+        showNewConnection(myDisplayer, smallSpacedFont);
+      }
+    }
+
     // if new valid message,  decide what to display
     if (myReceiver.isPendingMessage()) {
       const Receiver::RawMessage message = myReceiver.popPendingMessage();
@@ -249,6 +288,7 @@ int main(int argc, char *argv[]) {
       // short sleep
       usleep(15 * 1000);
     }
+
   }
   fprintf(stderr,"Interrupt received\n");
 

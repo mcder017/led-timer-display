@@ -73,7 +73,7 @@ public:
 
      bool isNoKnownConnections() {
           rgb_matrix::MutexLock l(&mutex_);
-          return newsockfd < 0;
+          return !isRunning() || newsockfd < 0;
      }
      std::string getLocalAddresses();
 
