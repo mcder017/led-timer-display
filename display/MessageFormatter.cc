@@ -81,7 +81,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
                       : eventTypeChar == RUNNING_FLAG_CHAR;
 
   const bool isIntermediateOne = eventTypeChar == 'A';
-  const bool isIntermediateTwo = eventTypeChar == 'B';
+  const bool isIntermediateTwo = eventTypeChar == 'B'; // 'B' is provided for 2nd or later intermediate times
   const bool isRunTime = eventTypeChar == 'C' || eventTypeChar == 'K';  // 'C' is TDC4000, 'K' is Comet Stopwatch (with next char identifying source Comet)
   const bool isTotalTime = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwo && !isStillRunningTime);
 
@@ -150,6 +150,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     myDisplayer.startChangeOrder(newOrder);
   }
   else {
+    // intermediate time, or else
     // unsure why didn't filter as total time, but do a similar display
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
