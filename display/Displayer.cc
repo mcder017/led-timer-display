@@ -171,6 +171,7 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
     y = y_origin;
   }
   setChangeDone(false);
+  isIdle = false;  // reset idle timer, regardless of whether message is blank or not (so idle markers can be re-added if appropriate)
 }
 
 inline void Displayer::setChangeDone(bool isChangeDone) {
@@ -203,8 +204,7 @@ void Displayer::iota() {
 
   if (!currChangeOrderDone) {
     // restart idle timer unless an "empty" message is in progress (still scrolling) on the display over multiple iota calls
-    if (!currChangeOrder.orderDoneHasEmptyDisplay()   // non-empty message ordered and/or in progress
-        || !currChangeOrder.isScrolling()) {          // possibly empty display ordered, but not scrolling, so restart idle timer
+    if (!currChangeOrder.orderDoneHasEmptyDisplay()) {  // non-empty message still in progress, so keep resetting the idle timer
       isIdle = false;
     }
 
