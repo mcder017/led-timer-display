@@ -175,8 +175,10 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     TextChangeOrder newOrder = buildDefaultChangeOrder(" ");  // clear display
     myDisplayer.startChangeOrder(newOrder);
   }
-  else if (isIntermediateOne || isIntermediateTwoPlus) {
+  else if (isIntermediateOne || isIntermediateTwoPlus) {  
     // intermediate time
+    // RTPro does not have run lap split, just total split, available to display.  
+    // (Run lap split is available to computer communication)
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
                              + (rankField.empty() ? "" : "[" + rankField + "]")
@@ -215,7 +217,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
       }
     }
   }
-  else if (isRunTime) {
+  else if (isRunTime) { // if run2 or later, RTPro sends total time, then run time, then total time again (with delays in between).
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
