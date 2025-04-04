@@ -72,10 +72,12 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   //constexpr size_t RUNNING_FLAG_POS_NO_BOARD_ID = 3;    // 4th char of protocol = string index 3
   constexpr size_t FRAC_SECONDS_SEP_POS_WITH_BOARD_ID = 17; // 18th char of protocol = string index 17
   constexpr char RUNNING_FLAG_CHAR = '.';
-  // handle both "usual" and "board ID" case
+
+  const bool isBlankMessage = trimWhitespace(isBoardIdentifier ? message.data.substr(BOARD_IDENTIFIER_POS+1) : message.data).length() == 0;
+  // handle both "usual" and "board ID" cases
   // in board ID case, the event flag field isn't used but no fractions of a second are recorded.  So look for separator, with non-blank seconds to ensure data present
   // in non-board ID case, look for event flag field
-  const bool isStillRunningTime =
+  const bool isStillRunningTime = 
     isBoardIdentifier ? (message.data.at(FRAC_SECONDS_SEP_POS_WITH_BOARD_ID-1) != ' '
                           && message.data.at(FRAC_SECONDS_SEP_POS_WITH_BOARD_ID) != '.')
                       : eventTypeChar == RUNNING_FLAG_CHAR;
@@ -83,7 +85,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   const bool isIntermediateOne = eventTypeChar == 'A';
   const bool isIntermediateTwoPlus = eventTypeChar == 'B'; // 'B' is provided for 2nd or later intermediate times
   const bool isRunTime = eventTypeChar == 'C' || eventTypeChar == 'K';  // 'C' is TDC4000, 'K' is Comet Stopwatch (with next char identifying source Comet)
-  const bool isTotalTime = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwoPlus && !isStillRunningTime); // includes message that is all-blank (after possible board id char) that effectively clears display
+  const bool isTotalTimeOrUnknown = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwoPlus && !isStillRunningTime); // expansive definition, includes message that is all-blank (after possible board id char) that effectively clears display
 
   // === UPDATE STATE VARIABLE ===
   // RTPro sends multiple ALGE protocol messages (to all boards!) if more than one board is defined, 
@@ -103,10 +105,11 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   }
 
   if (useIntermediateLocation) {
-    // allow for possibility that (due to disconnect/reconnect) we will not see intermediate locations in future
+    // allow for possibility that (perhaps due to RTPro configuration change or disconnect/reconnect) we will not see intermediate locations in upcoming messages
+    // and we do not want to throw away all future messages
 
-    if (!isBoardIdentifier && (isRunTime || isTotalTime)) {  // is total time is less meaningful when with board identifier
-      // reset flag, to see if still receiving location data in future
+    if (isBoardIdentifier && isStillRunningTime) {   // seeing board identifiers and not a total/run/split time, so not a duplicate of a recent nicely formatted intermediate message
+      // reset flag, to see if still receiving location data in upcoming messages
       useIntermediateLocation = false;  
       // reset the intermediate location ID
       nextIntermediateLocationID = 1;
@@ -160,32 +163,11 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     const std::string text = "[ " + timeField + " ]";
     myDisplayer.startChangeOrder(buildDefaultChangeOrder(text.c_str()));
   }
-  else if (isTotalTime) {
+  else if (isTotalTimeOrUnknown) {
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
                              + (rankField.empty() ? "" : "(" + rankField + ")");
-    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
-    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
-    myDisplayer.startChangeOrder(newOrder);
-  }
-  else if (isRunTime) {
-    // combine bib, time, and rank if provided
-    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
-                             timeField
-                             + (rankField.empty() ? "" : "/ " + rankField);
-    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
-    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
-    myDisplayer.startChangeOrder(newOrder);
-  }
-  else {
-    // intermediate time, or else
-    // unsure why didn't filter as total time, but do a similar display
-    // combine bib, time, and rank if provided
-    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
-                             timeField
-                             + (rankField.empty() ? "" : "[" + rankField + "]")
-                             + (isIntermediateOne || isIntermediateTwoPlus ? " S"+std::to_string(nextIntermediateLocationID) : "");
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
 
@@ -202,8 +184,38 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
       myDisplayer.startChangeOrder(newOrder);
     }
     else {
-      fprintf(stderr, "Ignoring board ID message without intermediate info\n");    
+      fprintf(stderr, "Ignoring board ID message given specific intermediate msg seen\n");
     }
+  }
+  else if (isRunTime) {
+    // combine bib, time, and rank if provided
+    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
+                             timeField
+                             + (rankField.empty() ? "" : "/ " + rankField);
+    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
+    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
+    myDisplayer.startChangeOrder(newOrder);
+  }
+  else if (isIntermediateOne || isIntermediateTwoPlus) {
+    // intermediate time
+    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
+                             timeField
+                             + (rankField.empty() ? "" : "[" + rankField + "]")
+                             + " S"+std::to_string(nextIntermediateLocationID);
+    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
+    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
+
+    myDisplayer.startChangeOrder(newOrder);
+  }
+  else {
+    // unsure why didn't filter as total time, but do a similar display
+    // combine bib, time, and rank if provided
+    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
+                             timeField
+                             + (rankField.empty() ? "" : "[" + rankField + "]");
+    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
+    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
+    myDisplayer.startChangeOrder(newOrder);
   }
 }
 
