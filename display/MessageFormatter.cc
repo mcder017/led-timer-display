@@ -90,28 +90,39 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   // === UPDATE STATE VARIABLE ===
   // RTPro sends multiple ALGE protocol messages (to all boards!) if more than one board is defined, 
   // with first having a useful extra info character and later copies not having that char but have a board ID inserted at start.
+  //
   // Since the protocol only indicates "first intermediate" and then "second-or-later intermediate", 
+  // and since the RTPro stops sending any intermediate time snapshots if any sequential intermediate time point (1,2,3,...) is skipped during a run,
   // we maintain a state variable to track what intermediate we are on, across messages received.
   // AND rather than look for "our" board ID, we use the receipt of the full message meant for the "first" board to distinguish if we are on a new intermediate.
-  if (isIntermediateOne) {
-    // reset the intermediate location ID and confirm we are seeing the detailed data
-    useIntermediateLocation = true;  // we have seen a message with no board ID, so we will use the intermediate location IDs in displays
-    nextIntermediateLocationID = 1;
+  if (!observedEventTypeChar) {
+    if (!isBoardIdentifier && eventTypeChar != ' ') {
+      observedEventTypeChar = true;
+    }
   }
-  else if (isIntermediateTwoPlus && !isBoardIdentifier) { // new intermediate point (e.g. speed point),  not a board-ID-variation copy of a message already received
-    // increment the intermediate location ID
-    useIntermediateLocation = true;  // we have seen a message with no board ID, so we will use the intermediate location IDs in displays
-    nextIntermediateLocationID++;
-  }
-
-  if (useIntermediateLocation) {
+  else {
     // allow for possibility that (perhaps due to RTPro configuration change or disconnect/reconnect) we will not see intermediate locations in upcoming messages
     // and we do not want to throw away all future messages
 
     if (isBoardIdentifier && isStillRunningTime) {   // seeing board identifiers and not a total/run/split time, so not a duplicate of a recent nicely formatted intermediate message
       // reset flag, to see if still receiving location data in upcoming messages
-      useIntermediateLocation = false;  
+      observedEventTypeChar = false;  
+    }
+  }
+
+  if (observedEventTypeChar) {
+    if (isIntermediateOne) {
       // reset the intermediate location ID
+      nextIntermediateLocationID = 1;
+    }
+    else if (isIntermediateTwoPlus && !isBoardIdentifier) { // new intermediate point (e.g. speed point),  not a board-ID-variation copy of a message already received
+      // increment the intermediate location ID
+      // (relies on the behavior that the RTPro will not send a message with a new intermediate location ID if the previous one was skipped, 
+      //  so each run this state variable will reset to value 1, above)
+      nextIntermediateLocationID++;
+    }
+    else if (!isBoardIdentifier && (isRunTime || isTotalTimeOrUnknown) && eventTypeChar != ' ') {
+      // in an abundance of caution, reset the intermediate location ID if end of run known due to specific event type code flags
       nextIntermediateLocationID = 1;
     }
   }
@@ -186,16 +197,15 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
 
-    // ASSUMPTION on multi-messages
-    // Because of addition of state variable nextIntermediateLocationID (used below)
-    // we lean on the assumption that the RTPro continues to send all board messages to all boards IDs,
-    // not just the board message for the ID that this IP is associated with.  The first message (with no board ID)
-    // contains extra information (such as intermediate location) that we are now making active use of.
+    // The RTPro sends all board messages to all boards IDs,
+    // not just individual messages to each board's IP.  The first message (with no board ID)
+    // contains extra information (such as intermediate location) of which we are now making active use.
     //
     // Therefore, we are now discarding (ignoring) any messages with a board ID.  This avoids having
     // useful display (like the split location) disappearing instantly when the 2nd message (with board ID but no detail data) arrives.
-    // The hedge on this approach is that if we have not seen messages with no board ID, then we don't ignore.
-    if (!isBoardIdentifier || !useIntermediateLocation) {
+    //
+    // The hedge on this approach is that if we are only seeing messages with a board ID, then we don't ignore.
+    if (!isBoardIdentifier || !observedEventTypeChar) {
       myDisplayer.startChangeOrder(newOrder);
     }
     else {

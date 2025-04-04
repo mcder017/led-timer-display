@@ -29,7 +29,7 @@ private:
   bool default_horizontal;
   TextChangeOrder::ScrollType default_scroll_type;
 
-  bool useIntermediateLocation;  // true if have seen intermediate location specifications and hence we'll ignore messages without them as copies
+  bool observedEventTypeChar;  // true if have seen intermediate location specifications and hence we'll ignore messages without them as copies
   int nextIntermediateLocationID;  // next intermediate location to display if multiple messages received
 
   void handleAlgeMessage(const Receiver::RawMessage& message);
