@@ -209,7 +209,9 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
       myDisplayer.startChangeOrder(newOrder);
     }
     else {
-      fprintf(stderr, "Ignore board ID msg after event type msg seen\n");
+      if (isatty(STDIN_FILENO)) {
+        printf("Ignoring dupl msg\n");
+      }
     }
   }
   else if (isRunTime) {
