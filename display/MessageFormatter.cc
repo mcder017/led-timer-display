@@ -209,7 +209,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
       myDisplayer.startChangeOrder(newOrder);
     }
     else {
-      fprintf(stderr, "Ignoring board ID message given specific intermediate msg seen\n");
+      fprintf(stderr, "Ignore board ID msg after inter msg seen\n");
     }
   }
   else if (isRunTime) {
