@@ -105,13 +105,13 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   if (useIntermediateLocation) {
     // allow for possibility that (due to disconnect/reconnect) we will not see intermediate locations in future
 
-    if (isRunTime || isTotalTime) {  
+    if (!isBoardIdentifier && (isRunTime || isTotalTime)) {  // is total time is less meaningful when with board identifier
       // reset flag, to see if still receiving location data in future
       useIntermediateLocation = false;  
       // reset the intermediate location ID
       nextIntermediateLocationID = 1;
     }
-    else if (isStillRunningTime) {
+    else if (isStillRunningTime) {  // this flag is actively set with or without board identifier flag
       // reset flag, to see if still receiving location data in future, but do not reset intermediate ID
       useIntermediateLocation = false;  
     }
