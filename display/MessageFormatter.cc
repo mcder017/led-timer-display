@@ -81,9 +81,25 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
                       : eventTypeChar == RUNNING_FLAG_CHAR;
 
   const bool isIntermediateOne = eventTypeChar == 'A';
-  const bool isIntermediateTwo = eventTypeChar == 'B'; // 'B' is provided for 2nd or later intermediate times
+  const bool isIntermediateTwoPlus = eventTypeChar == 'B'; // 'B' is provided for 2nd or later intermediate times
   const bool isRunTime = eventTypeChar == 'C' || eventTypeChar == 'K';  // 'C' is TDC4000, 'K' is Comet Stopwatch (with next char identifying source Comet)
-  const bool isTotalTime = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwo && !isStillRunningTime);
+  const bool isTotalTime = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwoPlus && !isStillRunningTime); // includes message that is all-blank (after possible board id char) that effectively clears display
+
+  // === UPDATE STATE VARIABLE ===
+  // RTPro sends multiple ALGE protocol messages (to all boards!) if more than one board is defined, 
+  // with first having a useful extra info character and later copies not having that char but have a board ID inserted at start.
+  // Since the protocol only indicates "first intermediate" and then "second-or-later intermediate", 
+  // we maintain a state variable to track what intermediate we are on, across messages received.
+  // AND rather than look for "our" board ID, we use the receipt of the full message meant for the "first" board to distinguish if we are on a new intermediate.
+  if (isIntermediateOne || isRunTime || isTotalTime) {  
+    // reset the intermediate location ID
+    nextIntermediateLocationID = 1;
+  }
+  else if (isIntermediateTwoPlus && !isBoardIdentifier) { // new intermediate point (e.g. speed point),  not a board-ID-variation copy of a message already received
+    // increment the intermediate location ID
+    nextIntermediateLocationID++;
+  }
+  // ======
 
   // format the individual fields
 
@@ -155,7 +171,8 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
-                             + (rankField.empty() ? "" : "[" + rankField + "]");
+                             + (rankField.empty() ? "" : "[" + rankField + "]")
+                             + (isIntermediateOne || isIntermediateTwoPlus ? " S"+std::to_string(nextIntermediateLocationID) : "");
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
     myDisplayer.startChangeOrder(newOrder);
