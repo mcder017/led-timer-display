@@ -86,7 +86,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   const bool isIntermediateOne = eventTypeChar == 'A';
   const bool isIntermediateTwoPlus = eventTypeChar == 'B'; // 'B' is provided for 2nd or later intermediate times
   const bool isRunTime = eventTypeChar == 'C' || eventTypeChar == 'K';  // 'C' is TDC4000, 'K' is Comet Stopwatch (with next char identifying source Comet)
-  const bool isTotalTimeOrUnknown = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwoPlus && !isStillRunningTime); // expansive definition, includes message that is all-blank (after possible board id char) that effectively clears display
+  const bool isTotalTimeOrUnknown = eventTypeChar == 'D' || (!isIntermediateOne && !isIntermediateTwoPlus && !isRunTime && !isStillRunningTime); // expansive definition, includes message that is all-blank (after possible board id char) that effectively clears display
 
   // === UPDATE STATE VARIABLE ===
   // RTPro sends multiple ALGE protocol messages (to all boards!) if more than one board is defined, 
@@ -219,7 +219,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
-                             + (rankField.empty() ? "" : "/ " + rankField);
+                             + (rankField.empty() ? " Rn" : "/ " + rankField);
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
     myDisplayer.startChangeOrder(newOrder);
