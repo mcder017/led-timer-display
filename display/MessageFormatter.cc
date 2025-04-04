@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <string>
+#include <unistd.h>  // for io on linux, specifically for STDIN_FILENO
 
 static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
 
