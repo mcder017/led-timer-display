@@ -29,6 +29,9 @@ private:
   bool default_horizontal;
   TextChangeOrder::ScrollType default_scroll_type;
 
+  bool observedEventTypeChar;  // true if have seen intermediate location specifications and hence we'll ignore messages without them as copies
+  int nextIntermediateLocationID;  // next intermediate location to display if multiple messages received
+
   void handleAlgeMessage(const Receiver::RawMessage& message);
   void handleSimpleTextMessage(const Receiver::RawMessage& message);
   TextChangeOrder buildDefaultChangeOrder(const char* text) const;
