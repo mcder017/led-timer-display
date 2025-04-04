@@ -159,7 +159,22 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
 
   // assemble the message to display
 
-  if (isStillRunningTime) {
+  if (isBlankMessage) {
+    TextChangeOrder newOrder = buildDefaultChangeOrder(" ");  // clear display
+    myDisplayer.startChangeOrder(newOrder);
+  }
+  else if (isIntermediateOne || isIntermediateTwoPlus) {
+    // intermediate time
+    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
+                             timeField
+                             + (rankField.empty() ? "" : "[" + rankField + "]")
+                             + " S"+std::to_string(nextIntermediateLocationID);
+    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
+    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
+
+    myDisplayer.startChangeOrder(newOrder);
+  }
+  else if (isStillRunningTime) {
     const std::string text = "[ " + timeField + " ]";
     myDisplayer.startChangeOrder(buildDefaultChangeOrder(text.c_str()));
   }
@@ -194,17 +209,6 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
                              + (rankField.empty() ? "" : "/ " + rankField);
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
-    myDisplayer.startChangeOrder(newOrder);
-  }
-  else if (isIntermediateOne || isIntermediateTwoPlus) {
-    // intermediate time
-    const std::string text = //(bibField.empty() ? "" : bibField + "=") +
-                             timeField
-                             + (rankField.empty() ? "" : "[" + rankField + "]")
-                             + " S"+std::to_string(nextIntermediateLocationID);
-    TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
-    if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
-
     myDisplayer.startChangeOrder(newOrder);
   }
   else {
