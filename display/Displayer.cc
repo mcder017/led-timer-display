@@ -64,6 +64,10 @@ Displayer::Displayer(RGBMatrix::Options& aMatrix_options, rgb_matrix::RuntimeOpt
 
         // Create a new canvas to be used with led_matrix_swap_on_vsync
         offscreen_canvas = canvas->CreateFrameCanvas();
+        if (offscreen_canvas == nullptr) {
+          displayerOK = false;
+          fprintf(stderr, "Error creating offscreen_canvas\n");
+        }
     }
 }
 
@@ -198,7 +202,9 @@ void Displayer::iota() {
   constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
 
   if (!currChangeOrderDone) {
-    if (!currChangeOrder.orderDoneHasEmptyDisplay()) {
+    // restart idle timer unless an "empty" message is in progress (still scrolling) on the display over multiple iota calls
+    if (!currChangeOrder.orderDoneHasEmptyDisplay()   // non-empty message ordered and/or in progress
+        || !currChangeOrder.isScrolling()) {          // possibly empty display ordered, but not scrolling, so restart idle timer
       isIdle = false;
     }
 
