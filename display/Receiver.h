@@ -33,6 +33,13 @@ public:
                : protocol(p), data(std::move(s)), timestamp(t) {}
      };
 
+     struct ClientSummary {
+          int num_clients;
+          int active_client_index; // if negative, no active client.  otherwise, zero-based index of currently active client
+
+          ClientSummary(int aClientCount, int aActiveIndex) : num_clients(aClientCount), active_client_index(aActiveIndex) {}
+     }
+
      Receiver();    // use default port
      explicit Receiver(int aPort_number);
      ~Receiver() override;
@@ -64,8 +71,32 @@ public:
 
      bool isNoKnownConnections() {
           rgb_matrix::MutexLock l(&mutex_descriptors);
-          return num_socket_descriptors == 0;
+          return num_socket_descriptors < 2;  // first socket is port listener
      }
+
+     ClientSummary getClientSummary() {
+          rgb_matrix::MutexLock l(&mutex_descriptors);
+          ClientSummary summary(num_socket_descriptors-1, -1);
+          if (active_display_sockfd >= 0) {
+               for (int i=0; i < num_socket_descriptors; i++) {
+                    if (socket_descriptors[i].fd == active_display_sockfd) {
+                         summary.active_client_index = i - 1; // -1 as first socket is port listener
+                         break;
+                    }
+               }
+          }
+          return summary;
+     }
+
+     bool setActiveClient(int aClientIndex) {
+          rgb_matrix::MutexLock l(&mutex_descriptors);
+          if (aClientIndex < 0 || aClientIndex >= num_socket_descriptors-1) {
+               return false; // invalid index. note that clients could have change since call to getClientSummary, so caller should just check again
+          }
+          active_display_sockfd = socket_descriptors[aClientIndex+1].fd; // +1 as first socket is port listener
+          return true;
+     }
+
      std::string getLocalAddresses();
 
      static std::string nonprintableToHexadecimal(const char* str);
