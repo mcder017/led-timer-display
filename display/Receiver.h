@@ -41,39 +41,30 @@ public:
 
      // Stop the thread at the next possible time Run() checks the running_ flag.
      void Stop() {
-          rgb_matrix::MutexLock l(&mutex_);
+          rgb_matrix::MutexLock l(&mutex_is_running);
           running_ = false;
      }
 
      // Implement this and run while running() returns true.
      void Run() override;
 
-     bool isRunning() {return running();}    // sets MutexLock internally
+     bool isRunning() {return lockedTestRunning();}    // sets MutexLock internally
 
      bool isPendingMessage() {
-          rgb_matrix::MutexLock l(&mutex_);
-          return !message_queue.empty();
+          rgb_matrix::MutexLock l(&mutex_msg_queue);
+          return !active_message_queue.empty();
      }
 
      RawMessage popPendingMessage() {
-          rgb_matrix::MutexLock l(&mutex_);
-          const RawMessage pendingMessage = message_queue.front();
-          message_queue.pop_front();
+          rgb_matrix::MutexLock l(&mutex_msg_queue);
+          const RawMessage pendingMessage = active_message_queue.front();
+          active_message_queue.pop_front();
           return pendingMessage;
      }
 
-     void setClearOnUnrecognizedMessage(bool doClear) {
-          rgb_matrix::MutexLock l(&mutex_);
-          clearDisplayOnUnrecognizedMessage = doClear;
-     }
-     [[nodiscard]] bool isClearOnUnrecognizedMessage() {
-          rgb_matrix::MutexLock l(&mutex_);
-          return clearDisplayOnUnrecognizedMessage;
-     }
-
      bool isNoKnownConnections() {
-          rgb_matrix::MutexLock l(&mutex_);
-          return !running_ || newsockfd < 0; // avoid calling running() or isRunning() to avoid double-lock deadlock
+          rgb_matrix::MutexLock l(&mutex_descriptors);
+          return num_socket_descriptors == 0;
      }
      std::string getLocalAddresses();
 
@@ -82,36 +73,71 @@ public:
 protected:
      static constexpr char PROTOCOL_END_OF_LINE = '\x0d';
 
-     inline bool running() {
-          rgb_matrix::MutexLock l(&mutex_);
+     inline bool lockedTestRunning() {
+          rgb_matrix::MutexLock l(&mutex_is_running);
           return running_;
      }
 
-     void queueReceivedMessage(const RawMessage& aMessage) {
-          rgb_matrix::MutexLock l(&mutex_);
-          message_queue.push_back(aMessage);
+     inline void lockedActiveQueueReceivedMessage(const RawMessage& aMessage) {
+          rgb_matrix::MutexLock l(&mutex_msg_queue);
+          active_message_queue.push_back(aMessage);
+     }
+
+     inline void lockedStop() {
+          Stop();   // public method, locks internally
      }
 
 private:
-     rgb_matrix::Mutex mutex_;
-     bool running_;                          // use MutexLock to allow thread-safe read&write
-     std::deque<RawMessage> message_queue;   // use MutexLock to allow thread-safe read&write
+     const int MAX_OPEN_SOCKETS = 20;
 
-     int sockfd;
-     int newsockfd;                          // use MutexLock to allow thread-safe read&write
-     socklen_t clilen;
-     char socket_buffer[PROTOCOL_MESSAGE_MAX_LENGTH+1];     // include room for end-of-string null
-     struct sockaddr_in serv_addr, cli_addr;
+     // no lock needed, only used by this object's Run thread
      int port_number;
+     int listen_for_clients_sockfd;          // entry in the socket_descriptors array for listening for new clients
+     std::string tcp_unprocessed[MAX_OPEN_SOCKETS];  // empty buffers to accumulate unprocessed messages separated by newlines
+     std::deque<RawMessage> inactive_message_queue[MAX_OPEN_SOCKETS]; // queue of messages received from each socket
+     bool pending_active_at_next_message;  // if true, first message received will determine the active client
+     std::string closingErrorMessage;   // if not empty, displayable error message to queue when stopping thread
 
-     bool clearDisplayOnUnrecognizedMessage; // use MutexLock to allow thread-safe read&write
+     // If multiple locks, must ensure can not have deadlock between threads waiting for resources.
+     // One way to do that is to ensure that only the Run thread can have multiple locks at once,
+     // AND organized such that the Run method thread can not try to re-lock something it has already locked.
+     // Public and protected methods (which can be called from other threads) can only use one lock and must release it by the end of the call.
+     //
+     // Otherwise, simpler to lock entire object.
+     rgb_matrix::Mutex mutex_msg_queue;
+     rgb_matrix::Mutex mutex_is_running;
+     rgb_matrix::Mutex mutex_descriptors;
 
-     void setupSocket();
+     // use MutexLock is_running to allow thread-safe read&write on this group
+     bool running_;                          
+
+     // use MutexLock msg_queue to allow thread-safe read&write on this group
+     std::deque<RawMessage> active_message_queue;     
+
+     // use MutexLock descriptors to allow thread-safe read&write on this group
+     struct pollfd socket_descriptors[MAX_OPEN_SOCKETS];    
+     int num_socket_descriptors;                            
+     int active_display_sockfd;              // entry in the socket_descriptors array for source being displayed on the LED board
+
+     // locks descriptors internally
+     void lockedSetupInitialSocket();  // locks descriptors; may also lock running
+
+     // locks msq_queue internally
+     lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource);
+
+     // before calling, use MutexLock descriptors to allow thread-safe read&write on this group
+     void addMonitoring(int new_descriptor);
      void checkAndAcceptConnection();
-     void checkAndAppendData(std::string& unprocessed_buffer);
-     bool extractLineToQueue(std::string& unprocessed_buffer);
-     void parseLineToQueue(const char* single_line_buffer);
-     bool parseAlgeLineToQueue(const char* single_line_buffer);
+     bool checkAndAppendData(int source_descriptor, std::string& unprocessed_buffer); // returns true if data found.  if not, client is disconnecting, or error.
+     void closeAllSockets();
+     void closeSingleSocket(int aDescriptor);     // may also lock running
+     void compressSockets();
+
+     // no lock needed, only used by this object's Run thread
+     bool extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& aQueue);     
+     void parseLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
+     bool parseAlgeLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
+     void queueCompletedLines(std::string& aBuffer, std::deque<RawMessage>& aQueue);
 };
 
 
