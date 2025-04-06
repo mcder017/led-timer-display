@@ -450,9 +450,6 @@ void Receiver::doubleLockedChangeActiveDisplay() {
 }
 
 void Receiver::Run() {
-    std::time_t last_change_time = 0;   // TODO DEBUG seconds since epoch (C++17) 
-    constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5; // TODO DEBUG heartbeat checkin
-
     const short FLAG_POLLIN = POLLIN;
     const short FLAG_SINGLE_CLOSE = POLLPRI | POLLRDHUP | POLLHUP;  // flags for which we will close single connection
     const short FLAG_DO_STOP = ~(FLAG_POLLIN | FLAG_SINGLE_CLOSE);  // any other flag treated as error for which we will stop the receiver completely
@@ -460,10 +457,6 @@ void Receiver::Run() {
     lockedSetupInitialSocket(); // may ALSO lock running internally
 
     while (lockedTestRunning()) {
-        bool debugVerbose = last_change_time == 0 || (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE); // TODO DEBUG heartbeat checkin
-        if (debugVerbose) last_change_time = std::time(nullptr); // TODO DEBUG heartbeat checkin
-        if (debugVerbose) printf("Run: Heartbeat\n");   // TODO DEBUG
-
         // check if requested to change active display (and its queue)
         if (pending_active_display_sockfd >= 0) {
             doubleLockedChangeActiveDisplay();          // locks msg_queue AND descriptors
@@ -473,9 +466,7 @@ void Receiver::Run() {
         int result;
         {   // encapsulate lock
             rgb_matrix::MutexLock l(&mutex_descriptors);
-            if (debugVerbose) printf("Run: polling...\n");
             result = poll(socket_descriptors, num_socket_descriptors, 0); // no wait
-            if (debugVerbose) printf("Run: ...done\n");
         }        
 
         // handle all pending connections, data, and errors
@@ -567,7 +558,6 @@ void Receiver::Run() {
                 }
             }
         }
-        if (debugVerbose) printf("Run: end of verbose loop.\n");
     }
     // TODO main loop could be wrapped in try/catch
 

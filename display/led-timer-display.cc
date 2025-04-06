@@ -310,42 +310,28 @@ int main(int argc, char *argv[]) {
   bool currIsNoKnownConnections = false;
   updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections, 
                           true);  // force report of initial connection status
-
-  std::time_t last_change_time = 0;   // TODO DEBUG seconds since epoch (C++17) 
-  constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5; // TODO DEBUG heartbeat checkin
-                  
+                 
   while (!interrupt_received) {
-    bool debugVerbose = last_change_time == 0 || (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE); // TODO DEBUG heartbeat checkin
-    if (debugVerbose) last_change_time = std::time(nullptr); // TODO DEBUG heartbeat checkin
-    if (debugVerbose) printf("main: Heartbeat\n");  // TODO DEBUG
 
     updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections);
 
-    if (debugVerbose) printf("main: pre-isPending\n");  // TODO DEBUG
     // if new valid message,  decide what to display
     if (myReceiver.isPendingMessage()) {
-      if (debugVerbose) printf("main: intra-isPending, pre-pop\n");  // TODO DEBUG
       const Receiver::RawMessage message = myReceiver.popPendingMessage();
-      if (debugVerbose) printf("main: intra-isPending, post-pop\n");  // TODO DEBUG
       myFormatter.handleMessage(message);
     }
-    if (debugVerbose) printf("main: post-isPending\n");  // TODO DEBUG
 
     myDisplayer.iota();
 
-    if (debugVerbose) printf("main: pre-isRunning\n");  // TODO DEBUG
     // when no messages can be received, and there is nothing to scroll, delay quite a while before looping
     if (!myReceiver.isRunning() && !myDisplayer.getChangeOrder().isScrolling() && !myDisplayer.isChangeOrderDone()) {
-      if (debugVerbose) printf("main: intra-isRunning1\n");  // TODO DEBUG
       do_pause();
     }
     else {
-      if (debugVerbose) printf("main: intra-isRunning2\n");  // TODO DEBUG
       // short sleep
       usleep(15 * 1000);
     }
 
-    if (debugVerbose) printf("main: end verbose loop\n");  // TODO DEBUG
   }
   fprintf(stderr,"Interrupt received\n");
 
