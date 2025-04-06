@@ -340,7 +340,7 @@ bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMe
     if (msg.substr(0, UPLC_COMMAND_PREFIX.length()) != UPLC_COMMAND_PREFIX) {
         return false;  // not a UPLC command
     }
-    const std::string msg_post_prefix_non_eol = msg.substr(UPLC_COMMAND_PREFIX.length(), msg.length()-1); // remove prefix and end-of-line character
+    const std::string msg_post_prefix_non_eol = msg.substr(UPLC_COMMAND_PREFIX.length(), msg.length()-UPLC_COMMAND_PREFIX.length()-1); // remove prefix and end-of-line character
     if (msg_post_prefix_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
         return false;  // not a UPLC command
     }
@@ -360,10 +360,10 @@ bool Receiver::parseUPLCFormattedText(const char* single_line_buffer, std::deque
     if (msg.substr(0, TextChangeOrder::UPLC_FORMATTED_PREFIX.length()) != TextChangeOrder::UPLC_FORMATTED_PREFIX) {
         return false;  // not a UPLC formatted text
     }
-    if (msg.substr(msg.length()-TextChangeOrder::UPLC_FORMATTED_SUFFIX.length(), msg.length()) != TextChangeOrder::UPLC_FORMATTED_SUFFIX) {
+    if (msg.substr(msg.length()-TextChangeOrder::UPLC_FORMATTED_SUFFIX.length(), TextChangeOrder::UPLC_FORMATTED_SUFFIX.length()) != TextChangeOrder::UPLC_FORMATTED_SUFFIX) {
         return false;  // not a UPLC formatted text
     }
-    const std::string msg_post_prefix_non_eol = msg.substr(TextChangeOrder::UPLC_FORMATTED_PREFIX.length(), msg.length()-TextChangeOrder::UPLC_FORMATTED_SUFFIX.length()); // remove prefix and end-of-line suffix
+    const std::string msg_post_prefix_non_eol = msg.substr(TextChangeOrder::UPLC_FORMATTED_PREFIX.length(), msg.length()-TextChangeOrder::UPLC_FORMATTED_PREFIX.length()-TextChangeOrder::UPLC_FORMATTED_SUFFIX.length()); // remove prefix and end-of-line suffix
     if (msg_post_prefix_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
         return false;  // not UPLC formatted text
     }
@@ -715,9 +715,9 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
         return;  // not a UPLC command
     }
 
-    switch(message_string.at(UPLC_COMMAND_PREFIX.length())) {
+    switch(message_string.at(UPLC_COMMAND_PREFIX.length())) { 
         case UPLC_COMMAND_SET_ACTIVE_CLIENT:
-            internalSetActiveClient(message_string.substr(UPLC_COMMAND_PREFIX.length()+1, message_string.length()-1));  // +1 to skip command char, -1 to skip end-of-line char
+            internalSetActiveClient(message_string.substr(UPLC_COMMAND_PREFIX.length()+1, message_string.length()-UPLC_COMMAND_PREFIX.length()-1-1));  // +1 to skip command char, -1 to skip end-of-line char
             break;
         case UPLC_COMMAND_SHOW_CLIENTS:
             showClients();
