@@ -43,7 +43,7 @@ void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
 
 void MessageFormatter::handleUPLCFormattedMessage(const Receiver::RawMessage& message) {
   TextChangeOrder newOrder(defaultOrderFormat);  // copy the default order format
-  if (!newOrder.fromUPLCFormattedMessage(message)) {  // conversion failed
+  if (!newOrder.fromUPLCFormattedMessage(message.data)) {  // conversion failed
     fprintf(stderr, "UPLC format conversion failed on:%s\n", message.data.c_str());
     return;
   }
@@ -260,7 +260,7 @@ void MessageFormatter::handleSimpleTextMessage(const Receiver::RawMessage& messa
 }
 
 TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) const {
-  TextChangeOrder newOrder(defaultOrderFormat)
+  TextChangeOrder newOrder(defaultOrderFormat);
   newOrder.setText(text);
   return newOrder;
 }
