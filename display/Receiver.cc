@@ -350,18 +350,18 @@ bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMe
 }
 
 bool Receiver::parseUPLCFormattedText(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
-    if (strlen(single_line_buffer) <= TextChangeOrder::UPLC_FORMATTED_PREFIX.length) {
+    if (strlen(single_line_buffer) < TextChangeOrder::UPLC_FORMATTED_PREFIX.length()+1) {
         return false;  // not UPLC formatted text
     }
 
     const std::string msg(single_line_buffer);
-    if (msg.substr(0, UPLC_FORMATTED_PREFIX.length()) != UPLC_FORMATTED_PREFIX) {
+    if (msg.substr(0, TextChangeOrder::UPLC_FORMATTED_PREFIX.length()) != TextChangeOrder::UPLC_FORMATTED_PREFIX) {
         return false;  // not a UPLC formatted text
     }
-    if (msg.substr(msg.length()-UPLC_FORMATTED_SUFFIX.length(), msg.length()) != UPLC_FORMATTED_SUFFIX) {
+    if (msg.substr(msg.length()-TextChangeOrder::UPLC_FORMATTED_SUFFIX.length(), msg.length()) != TextChangeOrder::UPLC_FORMATTED_SUFFIX) {
         return false;  // not a UPLC formatted text
     }
-    const std::string msg_post_prefix_non_eol = msg.substr(UPLC_FORMATTED_PREFIX.length(), msg.length()-UPLC_FORMATTED_SUFFIX.length()); // remove prefix and end-of-line suffix
+    const std::string msg_post_prefix_non_eol = msg.substr(TextChangeOrder::UPLC_FORMATTED_PREFIX.length(), msg.length()-TextChangeOrder::UPLC_FORMATTED_SUFFIX.length()); // remove prefix and end-of-line suffix
     if (msg_post_prefix_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
         return false;  // not UPLC formatted text
     }
