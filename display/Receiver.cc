@@ -28,8 +28,8 @@ static auto LED_ERROR_MESSAGE_FAIL_EVENT = "DISP(F)";
 static auto CLEAR_DISPLAY_ON_UNRECOGNIZED_MESSAGE = true; 
 
 Receiver::Receiver(int aPort_number)  : port_number(aPort_number), listen_for_clients_sockfd(-1), 
-                                        pending_active_at_next_message(true), closingErrorMessage(""), 
-                                        running_(false),
+                                        closingErrorMessage(""), 
+                                        running_(false), pending_active_at_next_message(true), 
                                         num_socket_descriptors(0),
                                         active_display_sockfd(-1), pending_active_display_sockfd(-1)                                        
                                          {
@@ -290,7 +290,7 @@ bool Receiver::extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& 
 
 void Receiver::parseLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
     //const bool alge_line =
-        parseAlgeLineToQueue(single_line_buffer, aQueue);    // if true, line has been pushed into queue
+        parseAlgeLineToQueue(single_line_buffer, aQueue);    // if true, ALGE protocol line has been pushed into queue (if false, may have queued to clear display via Simple protocol entry)
 }
 
 bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
