@@ -181,7 +181,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     // (Run lap split is available to computer communication)
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
-                             + (rankField.empty() ? "" : "[" + rankField + "]")
+                             //+ (rankField.empty() ? "" : "[" + rankField + "]")
                              + " S"+std::to_string(nextIntermediateLocationID);
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
@@ -221,7 +221,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
-                             + (rankField.empty() ? " Rn" : "/ " + rankField);
+                             + (rankField.empty() ? " Rn" : "(" + rankField + ")");
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
     myDisplayer.startChangeOrder(newOrder);

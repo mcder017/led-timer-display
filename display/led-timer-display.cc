@@ -148,7 +148,7 @@ static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedF
 
 static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver, const SpacedFont& aFont, bool& currIsNoKnown, const bool forceReport = false) {
   // update display's marker of "no connection" status
-  const bool newIsNoKnownConnections = myReceiver.isNoKnownConnections();
+  const bool newIsNoKnownConnections = myReceiver.isNoActiveSourceOrPending();
 
   if (currIsNoKnown != newIsNoKnownConnections || forceReport) {
     currIsNoKnown = newIsNoKnownConnections;
@@ -162,6 +162,10 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
 
     // use text to indicate new connection
     if (!currIsNoKnown) {
+      if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Displaying active connection message\n");
+      }
       showNewConnection(myDisplayer, aFont);
     }
   }
@@ -303,11 +307,13 @@ int main(int argc, char *argv[]) {
     printf("Press CTRL-C for exit.\n");
   }
 
-  bool currIsNoKnownConnections = false;
-  updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections, true);
-
+  bool currIsNoActiveSource = false;
+  updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoActiveSource, 
+                          true);  // force report of initial connection status
+                 
   while (!interrupt_received) {
-    updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections);
+
+    updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoActiveSource);
 
     // if new valid message,  decide what to display
     if (myReceiver.isPendingMessage()) {
