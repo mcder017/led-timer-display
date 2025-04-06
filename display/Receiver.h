@@ -74,7 +74,7 @@ public:
 
      bool isNoActiveSourceOrPending() {
           rgb_matrix::MutexLock l(&mutex_descriptors);
-          return active_display_sockfd < 0 && !pending_active_at_next_message;
+          return (num_socket_descriptors < 2) || (active_display_sockfd < 0 && !pending_active_at_next_message);   // 1st descriptor is port listener
      }
 
      ClientSummary getClientSummary();
