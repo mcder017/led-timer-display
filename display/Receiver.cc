@@ -5,7 +5,7 @@
 #include "Receiver.h"
 
 #include <sys/socket.h>
-#include <netinet/in.h>
+#include <sys/ioctl.h>
 #include <arpa/inet.h>  // inet_ntoa
 #include <sys/types.h>
 #include <ifaddrs.h>
@@ -31,7 +31,7 @@ Receiver::Receiver(int aPort_number)  : port_number(aPort_number), listen_for_cl
                                         pending_active_at_next_message(true), closingErrorMessage(""), 
                                         running_(false),
                                         num_socket_descriptors(0),
-                                        active_display_sockfd(-1), pending_active_display_sockfd(-1),                                        
+                                        active_display_sockfd(-1), pending_active_display_sockfd(-1)                                        
                                          {
     bzero((struct pollfd *) &socket_descriptors, sizeof(socket_descriptors));                                        
 
@@ -49,7 +49,7 @@ Receiver::~Receiver() {
 
 void Receiver::Start() {
     {
-      rgb_matrix::MutexLock l(&mutex_);
+      rgb_matrix::MutexLock l(&mutex_is_running);
       running_ = true;
     }
     // avoid core 3 (prefer core 0,1,2) so not on core with RGBMatrix
@@ -216,7 +216,8 @@ bool Receiver::checkAndAppendData(int source_descriptor, std::string& unprocesse
         const int result_flag = recv(source_descriptor, socket_buffer, PROTOCOL_MESSAGE_MAX_LENGTH, MSG_DONTWAIT);
 
         if (result_flag > 0) {        
-            socket_buffer[num_read] = '\0';  // ensure end-of-string safely added (buffer has one extra size element)
+            // result_flag is now known to be the number of bytes read
+            socket_buffer[result_flag] = '\0';  // ensure end-of-string safely added (buffer has one extra size element)
 
             if (isatty(STDIN_FILENO)) {
                 // Only give a message if we are interactive. If connected via pipe, be quiet
@@ -471,7 +472,7 @@ void Receiver::Run() {
         // handle all pending connections, data, and errors
         if (result < 0) {
             fprintf(stderr, "poll() failed, errno=%d\n", errno);
-            closingErrorMessage = LED_ERROR_POLL;
+            closingErrorMessage = LED_ERROR_MESSAGE_POLL;
             lockedStop(); // open sockets will be closed at end of Run()            
         }
         else if (result == 0) {
@@ -492,7 +493,7 @@ void Receiver::Run() {
                         continue;   // no events on this descriptor
                     }
 
-                    if (socket_descriptors[i].revents & FLAG_POLLIN != 0) {                    
+                    if ((socket_descriptors[i].revents & FLAG_POLLIN) != 0) {                    
                         if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
                             // new connection to accept
                             checkAndAcceptConnection(); // appends to array
@@ -534,13 +535,13 @@ void Receiver::Run() {
                         const bool isActiveDisplay = socket_descriptors[i].fd == active_display_sockfd;
                         const bool isMainListen = socket_descriptors[i].fd == listen_for_clients_sockfd;
                     
-                        if (socket_descriptors[i].revents & FLAG_SINGLE_CLOSE != 0) {                    
+                        if ((socket_descriptors[i].revents & FLAG_SINGLE_CLOSE) != 0) {                    
                             if (isatty(STDIN_FILENO)) {
                                 // Only give a message if we are interactive. If connected via pipe, be quiet
                                 printf("Closing single connection gracefully, index %d, %s, %s\n", i, , (isActiveDisplay ? "active display" : "not active display"), (isMainListen ? "port listener" : "not port listener"));
                             }                    
                         }
-                        if (socket_descriptors[i].revents & FLAG_DO_STOP != 0) {
+                        if ((socket_descriptors[i].revents & FLAG_DO_STOP) != 0) {
                             fprintf(stderr, "Unexpected poll() event %d, force-closing single connection, index %d, %s, %s\n", socket_descriptors[i].revents, i, (isActiveDisplay ? "active display" : "not active display"), (isMainListen ? "port listener" : "not port listener"));
                         }
                     
@@ -596,10 +597,10 @@ void Receiver::lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveS
 }
 
 void Receiver::compressSockets() {
-    for (i = 0; i < num_socket_descriptors; i++) {
+    for (int i = 0; i < num_socket_descriptors; i++) {
       if (socket_descriptors[i].fd == -1)
       {
-        for (j = i; j < num_socket_descriptors-1; j++) {
+        for (int j = i; j < num_socket_descriptors-1; j++) {
             socket_descriptors[j].fd = socket_descriptors[j+1].fd;
         }
         i--;

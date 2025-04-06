@@ -19,9 +19,11 @@ public:
      static constexpr int TCP_PORT_DEFAULT = 21967;
 
      static constexpr uint32_t PROTOCOL_MESSAGE_MAX_LENGTH = 96;   // longest valid protocol message, including end-of-line
+     
      enum Protocol {ALGE_DLINE,    // see "Alge timing manual for D-LINE / D-SAT"
                     SIMPLE_TEXT,  // data is short string to display on board
                     UNKNOWN};
+
      struct RawMessage {
           const Protocol protocol;
           const std::string data;
@@ -133,10 +135,13 @@ private:
      int active_display_sockfd;              // entry in the socket_descriptors array for source being displayed on the LED board
      int pending_active_display_sockfd;      // requested active display source, but not yet set
 
+     // locks msg_queue AND descriptors internally
+     void doubleLockedChangeActiveDisplay();
+
      // locks descriptors internally
      void lockedSetupInitialSocket();  // locks descriptors; may also lock running
 
-     // locks msq_queue internally
+     // locks msg_queue internally
      void lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource);
 
      // before calling, use MutexLock descriptors to allow thread-safe read&write on this group
