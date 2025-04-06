@@ -10,15 +10,11 @@
 
 static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
 
-MessageFormatter::MessageFormatter(Displayer& aDisplayer, rgb_matrix::Font* aFontPtr, int aLetterSpacing,
-                                   rgb_matrix::Color& fgColor, rgb_matrix::Color& bgColor,
-                                   float velocity, bool scroll_horizontal, TextChangeOrder::ScrollType scroll_type)
-      : myDisplayer(aDisplayer), defaultVelocity(velocity), default_horizontal(scroll_horizontal), default_scroll_type(scroll_type) {
+MessageFormatter::MessageFormatter(Displayer& aDisplayer, TextChangeOrder aOrderFormat)
+      : myDisplayer(aDisplayer), defaultOrderFormat(aOrderFormat),
+        observedEventTypeChar(false), nextIntermediateLocationID(0) {
 
-    defaultSpacedFont.fontPtr = aFontPtr;
-    defaultSpacedFont.letterSpacing = aLetterSpacing;
-    defaultForegroundColor = fgColor;
-    defaultBackgroundColor = bgColor;
+    // no further initialization needed
 };
 
 void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
@@ -31,9 +27,27 @@ void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
       handleSimpleTextMessage(message);
       break;
 
+    case Receiver::Protocol::UPLC_FORMATTED_TEXT:
+      handleUPLCFormattedMessage(message);
+      break;
+
+    case Receiver::Protocol::UPLC_COMMAND:
+      // these are not meant for display.  quietly decline
+      fprintf(stderr, "UPLC Control message unexpectedly passed for formatting(%d):%s\n", message.protocol, message.data.c_str());
+      break;
+
     default:
       fprintf(stderr, "Unknown message passed for formatting(%d):%s\n", message.protocol, message.data.c_str());
   };
+}
+
+void MessageFormatter::handleUPLCFormattedMessage(const Receiver::RawMessage& message) {
+  TextChangeOrder newOrder(defaultOrderFormat);  // copy the default order format
+  if (!newOrder.fromUPLCFormattedMessage(message)) {  // conversion failed
+    fprintf(stderr, "UPLC format conversion failed on:%s\n", message.data.c_str());
+    return;
+  }
+  myDisplayer.startChangeOrder(newOrder);  // start the new order
 }
 
 void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
@@ -246,12 +260,8 @@ void MessageFormatter::handleSimpleTextMessage(const Receiver::RawMessage& messa
 }
 
 TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) const {
-  TextChangeOrder newOrder(defaultSpacedFont, text);
-  newOrder.setVelocity(defaultVelocity);
-  newOrder.setForegroundColor(defaultForegroundColor);
-  newOrder.setBackgroundColor(defaultBackgroundColor);
-  newOrder.setVelocityIsHorizontal(default_horizontal);
-  newOrder.setVelocityScrollType(default_scroll_type);
+  TextChangeOrder newOrder(defaultOrderFormat)
+  newOrder.setText(text);
   return newOrder;
 }
 

@@ -23,6 +23,8 @@ public:
 
      enum Protocol {ALGE_DLINE,    // see "Alge timing manual for D-LINE / D-SAT"
                     SIMPLE_TEXT,  // data is short string to display on board
+                    UPLC_COMMAND,   // data is control messages to this LED board
+                    UPLC_FORMATTED_TEXT, // data is text with formatting (font, color, scrolling)
                     UNKNOWN};
 
      struct RawMessage {
@@ -82,21 +84,34 @@ public:
      }
 
      ClientSummary getClientSummary();                 // locks mutex_descriptors internally
-     void setActiveClient(std::string aClientName);    // locks mutex_descriptors internally
+
+     void setActiveClient(std::string aClientName) {      
+          rgb_matrix::MutexLock l(&mutex_descriptors);     
+          internalSetActiveClient(aClientName);
+     }
 
      std::string getLocalAddresses();
 
      static std::string nonprintableToHexadecimal(const char* str);
+     static void setPreferredCommandFormatTemplate(int templateIndex);
 
 protected:
      static constexpr char PROTOCOL_END_OF_LINE = '\x0d';
+     static constexpr char CARRIAGE_RETURN = '\x0D';
+     static constexpr char LINE_FEED = '\x0A';
+
+     static constexpr char* UPLC_COMMAND_PREFIX = "~)'";
+     static constexpr char UPLC_COMMAND_SET_ACTIVE_CLIENT = '*';
+     static constexpr char UPLC_COMMAND_SHOW_CLIENTS = '!';
+     static constexpr char UPLC_COMMAND_TRANSMIT_CLIENTS = '?';
+     static constexpr char UPLC_COMMAND_ECHO_MESSAGES = '&';
 
      inline bool lockedTestRunning() {
           rgb_matrix::MutexLock l(&mutex_is_running);
           return running_;
      }
 
-     inline void lockedActiveQueueReceivedMessage(const RawMessage& aMessage) {
+     inline void lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
           rgb_matrix::MutexLock l(&mutex_msg_queue);
           active_message_queue.push_back(aMessage);
      }
@@ -154,7 +169,7 @@ private:
      void lockedSetupInitialSocket();  // locks descriptors; may also lock running
 
      // locks on mutex_msg_queue internally
-     void lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource);
+     void lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveSource);
 
      // before calling, use MutexLock on mutex_descriptors to allow thread-safe read&write on this group
      void addMonitoring(int new_descriptor);
@@ -163,12 +178,20 @@ private:
      void closeAllSockets();
      void closeSingleSocket(int aDescriptor);     // may also lock on mutex_running
      void compressSockets();
+     void internalSetActiveClient(std::string aClientName);    
+     void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
+     void showClients();                          // also locks on mutex_msg_queue internally
 
      // no lock needed, only used by this object's Run thread
      bool extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& aQueue);     
      void parseLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
      bool parseAlgeLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
+     bool parseUPLCCommand(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
+     bool parseUPLCFormattedText(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
      void queueCompletedLines(std::string& aBuffer, std::deque<RawMessage>& aQueue);
+
+     // formatting, intended to be set up once during construction
+     static int preferredCommandFormatTemplateIndex;
 };
 
 

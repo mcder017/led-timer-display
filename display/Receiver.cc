@@ -16,6 +16,8 @@
 #include <strings.h>    // bzero
 #include <string.h>     // strlen
 
+#include "TextChangeOrder.h"
+
 static auto LED_ERROR_MESSAGE_SOCKET = "DISP(S)";
 static auto LED_ERROR_MESSAGE_BIND = "DISP(B)";
 static auto LED_ERROR_MESSAGE_LISTEN = "DISP(L)";
@@ -308,8 +310,66 @@ bool Receiver::extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& 
 }
 
 void Receiver::parseLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
-    //const bool alge_line =
-        parseAlgeLineToQueue(single_line_buffer, aQueue);    // if true, ALGE protocol line has been pushed into queue (if false, may have queued to clear display via Simple protocol entry)
+    
+    if (!parseUPLCCommand(single_line_buffer, aQueue)
+        && !parseUPLCFormattedText(single_line_buffer, aQueue)
+        && !parseAlgeLineToQueue(single_line_buffer, aQueue)) {    // if parse is true, a message has already been pushed into queue
+
+        bool doClear = CLEAR_DISPLAY_ON_UNRECOGNIZED_MESSAGE;
+        fprintf(stderr, "Discarding unrecognized message%s:%s\n",
+            doClear ? " (and clear display)" : "",
+            nonprintableToHexadecimal(single_line_buffer).c_str());
+
+        if (doClear) {
+            aQueue.push_back(RawMessage(SIMPLE_TEXT, ""));
+        }
+    }
+}
+
+bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
+    if (strlen(single_line_buffer) <= strlen(UPLC_COMMAND_PREFIX)) {
+        return false;  // not a UPLC command
+    }
+    if (single_line_buffer[strlen(single_line_buffer)-1] != PROTOCOL_END_OF_LINE) {
+        return false;  // not a UPLC command
+    }
+
+    const std::string msg(single_line_buffer);
+    if (msg.substr(0, strlen(UPLC_COMMAND_PREFIX)) != UPLC_COMMAND_PREFIX) {
+        return false;  // not a UPLC command
+    }
+    const std::string msg_post_prefix_non_eol = msg.substr(strlen(UPLC_COMMAND_PREFIX), msg.length()-1); // remove prefix and end-of-line character
+    if (msg_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
+        return false;  // not a UPLC command
+    }
+
+    // appears to be valid, queue for processing
+    aQueue.push_back(RawMessage(UPLC_COMMAND, single_line_buffer));
+
+    return true;    
+}
+
+bool Receiver::parseUPLCFormattedText(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
+    if (strlen(single_line_buffer) <= strlen(TextChangeOrder::UPLC_FORMATTED_PREFIX)) {
+        return false;  // not UPLC formatted text
+    }
+
+    const std::string msg(single_line_buffer);
+    if (msg.substr(0, strlen(UPLC_FORMATTED_PREFIX)) != UPLC_FORMATTED_PREFIX) {
+        return false;  // not a UPLC formatted text
+    }
+    if (msg.substr(msg.length()-strlen(UPLC_FORMATTED_SUFFIX), msg.length()) != UPLC_FORMATTED_SUFFIX) {
+        return false;  // not a UPLC formatted text
+    }
+    const std::string msg_post_prefix_non_eol = msg.substr(strlen(UPLC_FORMATTED_PREFIX), msg.length()-strlen(UPLC_FORMATTED_SUFFIX)); // remove prefix and end-of-line suffix
+    if (msg_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
+        return false;  // not UPLC formatted text
+    }
+
+    // appears to be valid, queue for processing
+    aQueue.push_back(RawMessage(UPLC_FORMATTED_TEXT, single_line_buffer));
+
+    return true;    
 }
 
 bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
@@ -317,11 +377,10 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer, std::deque<R
     const unsigned int char_in_line = strlen(single_line_buffer);
     bool possible_alge_message = true;
 
-    // end of line can either be 0A 0D, or just 0D
-    const char CARRIAGE_RETURN = '\x0A';
+    // end of line can either be 0A 0D (lf cr, backwards from most customer cr lf), or just 0D (cr)
     const unsigned int data_chars_excluding_eol = char_in_line < 2
                 ? 0 :
-                  (single_line_buffer[char_in_line-2] == CARRIAGE_RETURN ? char_in_line-2 : char_in_line-1);
+                  (single_line_buffer[char_in_line-2] == LINE_FEED ? char_in_line-2 : char_in_line-1);
 
     if ((data_chars_excluding_eol < 19 || data_chars_excluding_eol > 23)
         || single_line_buffer[char_in_line-1] != PROTOCOL_END_OF_LINE) {
@@ -376,17 +435,7 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer, std::deque<R
         }
     }
 
-    if (!possible_alge_message) {
-        bool doClear = CLEAR_DISPLAY_ON_UNRECOGNIZED_MESSAGE;
-        fprintf(stderr, "Discarding unrecognized message%s:%s\n",
-            doClear ? " (and clear display)" : "",
-            nonprintableToHexadecimal(single_line_buffer).c_str());
-
-        if (doClear) {
-            aQueue.push_back(RawMessage(SIMPLE_TEXT, ""));
-        }
-    }
-    else {
+    if (possible_alge_message) {
         // if appears to be valid, queue for processing by other classes
         aQueue.push_back(RawMessage(ALGE_DLINE, single_line_buffer));
     }
@@ -536,7 +585,7 @@ void Receiver::Run() {
 
                                 // trim if inactive queue, or move inactive entries to active queue
                                 const bool isActiveDisplayBuffer = (socket_descriptors[i].fd == active_display_sockfd);
-                                lockedProcessQueue(descriptor_support_data[i].inactive_message_queue, isActiveDisplayBuffer); 
+                                lockedProcessQueue(descriptor_support_data[i], isActiveDisplayBuffer); 
                             }
                             else {  
                                 // received signal to close connection
@@ -588,7 +637,7 @@ void Receiver::Run() {
 
     if (closingErrorMessage != "") {
         // if error message to display, queue it
-        lockedActiveQueueReceivedMessage(RawMessage(SIMPLE_TEXT, closingErrorMessage));
+        lockedAppendMessageActiveQueue(RawMessage(SIMPLE_TEXT, closingErrorMessage));
         closingErrorMessage = "";   
     }
 
@@ -604,20 +653,79 @@ void Receiver::Run() {
     }
 }
 
-void Receiver::lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource) {
+void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveSource) {
     if (!isActiveSource) {
-        while (aQueue.size() > 1) {    
+        while (aDescriptorRef.inactive_message_queue.size() > 1) {    
             // for sources that are not being displayed,
             // shrink queue to only retain most recent message
-            aQueue.pop_front();
+            aDescriptorRef.inactive_message_queue.pop_front();
         }
     }
     else {
-        // move any inactive queued messages to active queue
-        while (aQueue.size() > 0) {
-            lockedActiveQueueReceivedMessage(aQueue.front());
-            aQueue.pop_front();
+        // move any inactive queued messages to active queue, intercepting any UPLC_COMMAND messages to be handled here
+        while (aDescriptorRef.inactive_message_queue.size() > 0) {
+            if (aDescriptorRef.inactive_message_queue.front().type == UPLC_COMMAND) {
+                // handle UPLC_COMMAND message here.  do not add to active queue for display
+                handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
+            }
+            else {
+                // copy to active queue
+                lockedAppendMessageActiveQueue(aDescriptorRef.inactive_message_queue.front());
+            }
+            // remove from inactive queue
+            aDescriptorRef.inactive_message_queue.pop_front();
         }
+    }
+}
+
+void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef) {
+    if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Received UPLC command: %s\n", nonprintableToHexadecimal(message_string.c_str()).c_str());
+    }                    
+
+    if (message_string.length() < strlen(UPLC_COMMAND_PREFIX)+1) {
+        fprintf(stderr, "UPLC command requested but prefix %s not found:%s\n",
+            UPLC_COMMAND_PREFIX, nonprintableToHexadecimal(message_string.c_str()).c_str());
+        return;  // not a UPLC command
+    }
+
+    switch(message_string.at(strlen(UPLC_COMMAND_PREFIX))) {
+        case UPLC_COMMAND_SET_ACTIVE_CLIENT:
+            internalSetActiveClient(message_string.substr(strlen(UPLC_COMMAND_PREFIX)+1, message_string.length()-1));  // +1 to skip command char, -1 to skip end-of-line char
+            break;
+        case UPLC_COMMAND_SHOW_CLIENTS:
+            showClients();
+            break;
+        case UPLC_COMMAND_TRANSMIT_CLIENTS:
+            // TODO
+            break;
+        case UPLC_COMMAND_ECHO_MESSAGES:
+            // TODO set flags here.  Then in led-timer-display, call back to Receiver to new method with (simple text, or formatted) message when order created
+            break;
+        default:
+            fprintf(stderr, "UPLC command requested but command char %c not recognized:%s\n",
+                message_string.at(strlen(UPLC_COMMAND_PREFIX)), nonprintableToHexadecimal(message_string.c_str()).c_str());
+            break;
+    }
+}
+
+void Receiver::showClients() {
+    for (int i=0; i < num_socket_descriptors; i++) {
+        if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
+            continue;  // skip port listener
+        }
+
+        TextChangeOrder clientDescription(TextChangeOrder::getRegisteredTemplate(preferredCommandFormatTemplateIndex));
+        clientDescription.setText(descriptor_support_data[i].source_name_unique);
+
+        if (active_display_sockfd >= 0 && socket_descriptors[i].fd == active_display_sockfd) {
+            const std::string prefixActive = "*";
+            clientDescription.setText(prefixActive + clientDescription.getText());
+        }
+
+        RawMessage clientInfoMessage(UPLC_FORMATTED_TEXT, clientDescription.toUPLCFormattedText());
+        lockedAppendMessageActiveQueue(clientInfoMessage);
     }
 }
 
@@ -690,6 +798,10 @@ Receiver::ClientSummary Receiver::getClientSummary() {
     summary.active_client_name = "";
     
     for (int i=0; i < num_socket_descriptors; i++) {
+        if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
+            continue;  // skip port listener
+        }
+
         summary.client_names.push_back(descriptor_support_data[i].source_name_unique);
 
         if (active_display_sockfd >= 0 && socket_descriptors[i].fd == active_display_sockfd) {
@@ -699,10 +811,7 @@ Receiver::ClientSummary Receiver::getClientSummary() {
     return summary;
 }
 
-void Receiver::setActiveClient(std::string aClientName) {
-    // caution to only hold one lock at a time on any public calls (or any thread other than Run thread), to avoid deadlock across threads
-
-    rgb_matrix::MutexLock l(&mutex_descriptors);
+void Receiver::internalSetActiveClient(std::string aClientName) {
     pending_active_display_name = aClientName;  
 
     pending_active_at_next_message = false;     // given active command, ensure not set by arbitrary first message
@@ -756,3 +865,6 @@ std::string Receiver::nonprintableToHexadecimal(const char* str) {
     return editedString;
 }
 
+void Receiver::setPreferredCommandFormatTemplate(int templateIndex) {
+    preferredCommandFormatTemplateIndex = templateIndex;
+}

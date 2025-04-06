@@ -33,8 +33,6 @@ Displayer::Displayer(RGBMatrix::Options& aMatrix_options, rgb_matrix::RuntimeOpt
       isIdle(false),
       isDisconnected(false),
       markedDisconnected(false),
-      x_origin(0),
-      y_origin(0),
 
       currChangeOrder(),
       currChangeOrderDone(true),
@@ -151,11 +149,11 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
         x = canvas->width();
       }
 
-      y = y_origin;
+      y = currChangeOrder.getYOrigin();
     }
     else {
       // scrolling vertically
-      x = x_origin;
+      x = currChangeOrder.getXOrigin();
 
       if (scroll_direction > 0) {
         y = -currChangeOrder.getSpacedFont().fontPtr->height();
@@ -167,8 +165,8 @@ void Displayer::startChangeOrder(const TextChangeOrder& aChangeOrder) {
     //printf("Scrolling request... startX=%d, startY=%d, vel=%f, dir=%d, %s, %s\n",x,y,currChangeOrder.getVelocity(),scroll_direction,currChangeOrder.getVelocityIsHorizontal() ? "horizontal" : "vertical",currChangeOrder.getVelocityIsSingleScroll() ? "single" : "repeating");// DEBUG
   }
   else {
-    x = x_origin;
-    y = y_origin;
+    x = currChangeOrder.getXOrigin();
+    y = currChangeOrder.getYOrigin();
   }
   setChangeDone(false);
   isIdle = false;  // reset idle timer, regardless of whether message is blank or not (so idle markers can be re-added if appropriate)
@@ -264,14 +262,14 @@ void Displayer::iota() {
             // wrap while scrolling horizontal
             if ((scroll_direction < 0 && x + length < 0) ||
                (scroll_direction > 0 && x > canvas->width())) {
-              x = x_origin + ((scroll_direction > 0) ? -length : canvas->width());
+              x = currChangeOrder.getXOrigin() + ((scroll_direction > 0) ? -length : canvas->width());
             }
           }
           else {
             // wrap while scrolling vertical
             if ((scroll_direction < 0 && y + currFont.baseline() < 0) ||
                (scroll_direction > 0 && y > canvas->height())) {
-              y = y_origin + ((scroll_direction > 0) ? -currFont.height() : canvas->height());
+              y = currChangeOrder.getYOrigin() + ((scroll_direction > 0) ? -currFont.height() : canvas->height());
             }
           }
           break;
@@ -279,17 +277,17 @@ void Displayer::iota() {
         case TextChangeOrder::SINGLE_ON:
           if (currChangeOrder.getVelocityIsHorizontal()) {
             // stop horizontal scroll when reach origin position
-            if ((scroll_direction < 0 && x <= x_origin) ||
-                (scroll_direction > 0 && x >= x_origin)) {
-              x = x_origin;
+            if ((scroll_direction < 0 && x <= currChangeOrder.getXOrigin()) ||
+                (scroll_direction > 0 && x >= currChangeOrder.getXOrigin())) {
+              x = currChangeOrder.getXOrigin();
               setChangeDone();
             }
           }
           else {
             // stop vertical scroll when reach origin position
-            if ((scroll_direction < 0 && y <= y_origin) ||
-                (scroll_direction > 0 && y >= y_origin)) {
-              y = y_origin;
+            if ((scroll_direction < 0 && y <= currChangeOrder.getYOrigin()) ||
+                (scroll_direction > 0 && y >= currChangeOrder.getYOrigin())) {
+              y = currChangeOrder.getYOrigin();
               setChangeDone();
             }
           }
@@ -305,7 +303,7 @@ void Displayer::iota() {
             }
           }
           else {
-            // stop vertical scroll when reach origin position
+            // stop vertical scroll when exit top or bottom
             if ((scroll_direction < 0 && y <= -currFont.height()) ||
                 (scroll_direction > 0 && y >= canvas->height())) {
               y = canvas->height()+1; // off screen

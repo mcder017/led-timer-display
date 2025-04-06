@@ -27,12 +27,6 @@ class Displayer {
 
     void iota();    // continue working on any previously assigned task, then return (non-blocking)
 
-    // shift the upper left position of the destination of text to be drawn
-    void setXOrigin(const int xOrig) {x_origin = xOrig;}
-    [[nodiscard]] int getXOrigin() const {return x_origin;}
-    void setYOrigin(const int yOrig) {y_origin = yOrig;}
-    [[nodiscard]] int getYOrigin() const {return y_origin;}
-
     void setAllowIdleMarkers(bool isAllow) {allowIdleMarkers = isAllow;}
     [[nodiscard]] int getAllowIdleMarkers() const {return allowIdleMarkers;}
     [[nodiscard]] int getMarkedIdle() const {return isIdle;}
@@ -50,9 +44,6 @@ class Displayer {
     uint8_t defaultPWMBits;
     rgb_matrix::RGBMatrix *canvas;
     rgb_matrix::FrameCanvas *offscreen_canvas;
-
-    int x_origin;
-    int y_origin;
 
     TextChangeOrder currChangeOrder;
     bool currChangeOrderDone;

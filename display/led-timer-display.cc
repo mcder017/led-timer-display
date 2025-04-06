@@ -81,45 +81,34 @@ static void do_pause() {
   sleep(3);
 }
 
-static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver, const SpacedFont& aSpacedFont) {
+static void showLocalAddresses(Displayer& myDisplayer, Receiver& myReceiver, const TextChangeOrder& textTemplate) {
 
   std::string local_addresses = myReceiver.getLocalAddresses();
 
   if (!local_addresses.empty()) {
-    TextChangeOrder addr_message(aSpacedFont, local_addresses.c_str());
-    addr_message.setVelocity(-12.0);
-    addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
-    addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
-    const int origY = myDisplayer.getYOrigin();
-    myDisplayer.setYOrigin(0);  // ensure ok for small font
+    TextChangeOrder addr_message(textTemplate);
+    addr_message.setText(local_addresses.c_str());
 
     myDisplayer.startChangeOrder(addr_message);
     while (!myDisplayer.isChangeOrderDone()) {
       myDisplayer.iota();
     }
-    myDisplayer.setYOrigin(origY);  // restore config
   }
 }
 
-static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedFont) {
+static void showNewConnection(Displayer& myDisplayer, const TextChangeOrder& textTemplate) {
 
   std::string connectionText = "Connected";
 
-  TextChangeOrder addr_message(aSpacedFont, connectionText.c_str());
-  addr_message.setVelocity(-2.0);
-  addr_message.setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF);
-  addr_message.setVelocityIsHorizontal(false);
-  addr_message.setForegroundColor(rgb_matrix::Color(0,255,0));  // green
-  const int origY = myDisplayer.getYOrigin();
-  myDisplayer.setYOrigin(0);  // ensure ok for small font
+  TextChangeOrder addr_message(textTemplate);
+  addr_message.setText(connectionText.c_str());
 
-  TextChangeOrder origDisplayedOrder = myDisplayer.getChangeOrder();  // copy the order
+  TextChangeOrder origDisplayedOrder = myDisplayer.getChangeOrder();  // copy the prior order
 
   myDisplayer.startChangeOrder(addr_message);
   while (!myDisplayer.isChangeOrderDone()) {
     myDisplayer.iota();
   }
-  myDisplayer.setYOrigin(origY);  // restore config
 
   // if previously displayed order ends onscreen, redisplay
   if (origDisplayedOrder.isScrolling()) { // velocity non-zero
@@ -146,7 +135,7 @@ static void showNewConnection(Displayer& myDisplayer, const SpacedFont& aSpacedF
   }
 }
 
-static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver, const SpacedFont& aFont, bool& currIsNoKnown, const bool forceReport = false) {
+static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver, const TextChangeOrder& textTemplate, bool& currIsNoKnown, const bool forceReport = false) {
   // update display's marker of "no connection" status
   const bool newIsNoKnownConnections = myReceiver.isNoActiveSourceOrPending();
 
@@ -166,7 +155,7 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
         // Only give a message if we are interactive. If connected via pipe, be quiet
         printf("Displaying active connection message\n");
       }
-      showNewConnection(myDisplayer, aFont);
+      showNewConnection(myDisplayer, textTemplate);
     }
   }
 
@@ -190,8 +179,8 @@ int main(int argc, char *argv[]) {
 
   std::string bdf_font_file_name; // empty means "use default"
   std::string line;               // default to empty string displayed
-  int x_orig = 0;
-  int y_orig = 0;
+  int x_orig = TextChangeOrder::getXOriginDefault();
+  int y_orig = TextChangeOrder::getYOriginDefault();
 
   int letter_spacing = 0;
   float speed = 7.0f;
@@ -256,6 +245,10 @@ int main(int argc, char *argv[]) {
     line.append(argv[i]).append(" ");
   }
 
+  // set default position to display text messages
+  TextChangeOrder::setXOriginDefault(x_orig);
+  TextChangeOrder::setYOriginDefault(y_orig);
+
   // Load font. If using a file rather than the default, it needs to be a filename with a bdf bitmap font.
   rgb_matrix::Font* fontPtr = nullptr;
   if (bdf_font_file_name.empty()) {
@@ -273,29 +266,60 @@ int main(int argc, char *argv[]) {
       return 1;
     }
   }
+  const int baseFontRegisterIndex = SpacedFont::registerFont(SpacedFont(fontPtr, letter_spacing));  // register the font
+  TextChangeOrder baseOrderTemplate(SpacedFont::getRegisteredSpacedFont(baseFontRegisterIndex), "");
+  baseOrderTemplate.setForegroundColor(fg_color).setBackgroundColor(bg_color)
+                   .setVelocity(speed).setVelocityIsHorizontal(set_horizontal_scroll)
+                   .setVelocityScrollType(set_scroll_type)
+                   .setXOrigin(x_orig).setYOrigin(y_orig);
+  const int baseTextTemplateIndex = TextChangeOrder::registerTemplate(baseOrderTemplate);       
 
-  SpacedFont smallSpacedFont(nullptr,0);
+  SpacedFont smallSpacedFont(nullptr,0);  // specific letter spacing
   rgb_matrix::Font smallFont;
   if (smallFont.ReadFont(BDF_5X7_STRING)) {
     smallSpacedFont.fontPtr = &smallFont;
   }
   else {
     fprintf(stderr, "Couldn't read internal font '%s'\n", BDF_5X7_STRING);
+    // smalLSpacedFont will keep default font
   }
+  const int smallFontRegisterIndex = SpacedFont::registerFont(SpacedFont(smallFont, letter_spacing));  // register the small font
+  TextChangeOrder smallFontTemplate(SpacedFont::getRegisteredSpacedFont(smallFontRegisterIndex), "");
+  smallFontTemplate.setForegroundColor(rgb_matrix::Color(0,255,0))  // green
+                    .setBackgroundColor(rgb_matrix::Color(0,0,0))   // black
+                    .setVelocity(speed).setVelocityIsHorizontal(false)
+                    .setVelocityScrollType(set_scroll_type)
+                    .setXOrigin(x_orig).setYOrigin(0);
+  const int smallTextTemplateIndex = TextChangeOrder::registerTemplate(smallFontTemplate);       
 
+  TextChangeOrder smallFontVerticalScrollTemplate(SpacedFont::getRegisteredSpacedFont(smallFontRegisterIndex), "");
+  smallFontVerticalScrollTemplate.setForegroundColor(rgb_matrix::Color(0,255,0))  // green
+                            .setBackgroundColor(rgb_matrix::Color(0,0,0))   // black
+                            .setVelocity(-2.0).setVelocityIsHorizontal(false)
+                            .setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF)
+                            .setXOrigin(x_orig).setYOrigin(0);
+  const int smallVerticalScrollTextTemplateIndex = TextChangeOrder::registerTemplate(smallFontVerticalScrollTemplate);       
+
+  TextChangeOrder smallFontHorizontalScrollTemplate(SpacedFont::getRegisteredSpacedFont(smallFontRegisterIndex), "");
+  smallFontHorizontalScrollTemplate.setForegroundColor(rgb_matrix::Color(0,255,0))  // green
+                                    .setBackgroundColor(rgb_matrix::Color(0,0,0))   // black
+                                    .setVelocity(-12.0).setVelocityIsHorizontal(true)
+                                    .setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF)
+                                    .setXOrigin(x_orig).setYOrigin(0);
+  const int smallHorizontalScrollTextTemplateIndex = TextChangeOrder::registerTemplate(smallFontHorizontalScrollTemplate);       
+                          
+  // ****************************************************************************
   Displayer myDisplayer(matrix_options, runtime_opt);
-  myDisplayer.setXOrigin(x_orig);
-  myDisplayer.setYOrigin(y_orig);
 
+  Receiver::setPreferredCommandFormatTemplate(smallVerticalScrollTextTemplateIndex);  // set as default for display of command responses
   Receiver myReceiver(port_number);
   myReceiver.Start();
 
-  MessageFormatter myFormatter(myDisplayer, fontPtr, letter_spacing, fg_color, bg_color, speed,
-                              set_horizontal_scroll, set_scroll_type);
+  MessageFormatter myFormatter(myDisplayer, baseOrderTemplate);
 
-
+  // ****************************************************************************
   // initial display of address connection text (we are awake, but perhaps not yet connected)
-  showLocalAddresses(myDisplayer, myReceiver, smallSpacedFont);
+  showLocalAddresses(myDisplayer, myReceiver, smallFontHorizontalScrollTemplate);
 
   // now show text from command line options
   myFormatter.handleMessage(Receiver::RawMessage(Receiver::Protocol::SIMPLE_TEXT, line));
@@ -308,12 +332,13 @@ int main(int argc, char *argv[]) {
   }
 
   bool currIsNoActiveSource = false;
-  updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoActiveSource, 
+  updateReportConnections(myDisplayer, myReceiver, smallFontVerticalTemplate, currIsNoActiveSource, 
                           true);  // force report of initial connection status
                  
+  // ****************************************************************************
   while (!interrupt_received) {
 
-    updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoActiveSource);
+    updateReportConnections(myDisplayer, myReceiver, smallFontVerticalTemplate, currIsNoActiveSource);
 
     // if new valid message,  decide what to display
     if (myReceiver.isPendingMessage()) {
@@ -335,6 +360,7 @@ int main(int argc, char *argv[]) {
   }
   fprintf(stderr,"Interrupt received\n");
 
+  // ****************************************************************************
   myReceiver.Stop();
 
   fprintf(stderr,"Exiting\n");
