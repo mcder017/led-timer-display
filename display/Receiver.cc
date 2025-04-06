@@ -505,6 +505,10 @@ void Receiver::Run() {
                                 queueCompletedLines(tcp_unprocessed[i], inactive_message_queue[i]);
 
                                 if (pending_active_at_next_message && inactive_message_queue[i].size() > 0) {
+                                    if (isatty(STDIN_FILENO)) {
+                                        // Only give a message if we are interactive. If connected via pipe, be quiet
+                                        printf("Assigning active display based on first message, internal index %d\n", i);
+                                    }                    
                                     active_display_sockfd = socket_descriptors[i].fd;  // set active display to this source
                                     pending_active_at_next_message = false;  // only set active display once, at first message; not automatically at every disconnect of active display
                                 }
