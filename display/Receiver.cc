@@ -28,12 +28,18 @@ static auto LED_ERROR_MESSAGE_FAIL_EVENT = "DISP(F)";
 
 static auto CLEAR_DISPLAY_ON_UNRECOGNIZED_MESSAGE = true; 
 
-Receiver::Receiver(int aPort_number)  : running_(false), listen_for_clients_sockfd(-1), active_display_sockfd(-1), num_socket_descriptors(0), clilen(0),
-                                        pending_active_display_sockfd(-1), port_number(aPort_number), pending_active_at_next_message(true),
-                                        closingErrorMessage("") {
-    bzero((char *) &cli_addr, sizeof(cli_addr));
+Receiver::Receiver(int aPort_number)  : port_number(aPort_number), listen_for_clients_sockfd(-1), 
+                                        pending_active_at_next_message(true), closingErrorMessage(""), 
+                                        running_(false),
+                                        num_socket_descriptors(0),
+                                        active_display_sockfd(-1), pending_active_display_sockfd(-1),                                        
+                                         {
     bzero((struct pollfd *) &socket_descriptors, sizeof(socket_descriptors));                                        
 
+    for (int i=0; i < MAX_OPEN_SOCKETS; i++) {
+        tcp_unprocessed[i] = "";  // initially empty buffers
+        inactive_message_queue[i].clear();  // initially empty queues
+    }
 }
 
 Receiver::Receiver() : Receiver(TCP_PORT_DEFAULT) {}    // forward to other constructor

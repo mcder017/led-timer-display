@@ -38,7 +38,7 @@ public:
           int active_client_index; // if negative, no active client.  otherwise, zero-based index of currently active client
 
           ClientSummary(int aClientCount, int aActiveIndex) : num_clients(aClientCount), active_client_index(aActiveIndex) {}
-     }
+     };
 
      Receiver();    // use default port
      explicit Receiver(int aPort_number);
@@ -100,7 +100,7 @@ protected:
      }
 
 private:
-     const int MAX_OPEN_SOCKETS = 20;
+     static const int MAX_OPEN_SOCKETS = 20;
 
      // no lock needed, only used by this object's Run thread
      int port_number;
@@ -136,7 +136,7 @@ private:
      void lockedSetupInitialSocket();  // locks descriptors; may also lock running
 
      // locks msq_queue internally
-     lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource);
+     void lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource);
 
      // before calling, use MutexLock descriptors to allow thread-safe read&write on this group
      void addMonitoring(int new_descriptor);
