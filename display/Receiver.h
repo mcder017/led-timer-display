@@ -41,6 +41,7 @@ public:
           std::vector<std::string> client_names; // list of unique names (based on addresses) of clients currently connected
           std::string active_client_name; // if empty, no active client.  otherwise, an entry from client_names
 
+          ClientSummary() : client_names(), active_client_name() {}
           ClientSummary(std::vector<std::string> aClientNameVector, std::string aActiveName) : client_names(aClientNameVector), active_client_name(aActiveName) {}
      };
 

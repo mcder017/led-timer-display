@@ -431,8 +431,8 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                 printf("Changing active display source to %s, internal array index %d to %d\n", target_client_name.c_str(), old_active_index, new_active_index);
             }                    
 
+            // move any active queue to old source inactive status
             if (active_message_queue.size() > 0) {
-                // move active queue to inactive status
                 if (isatty(STDIN_FILENO)) {
                     // Only give a message if we are interactive. If connected via pipe, be quiet
                     printf("De-queueing %ld old active messages...\n", active_message_queue.size());
@@ -444,7 +444,7 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                 }
             }
 
-            // move inactive queue to active status
+            // move any new source inactive queue to active status
             if (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {
                 if (isatty(STDIN_FILENO)) {
                     // Only give a message if we are interactive. If connected via pipe, be quiet
@@ -458,8 +458,7 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
             }
 
             // update socket reference
-            active_display_sockfd = pending_active_display_sockfd;  // set active display to this source
-            pending_active_display_sockfd = -1;  // clear pending display source
+            active_display_sockfd = socket_descriptors[new_active_index].fd;  // set active display to this source
         }
     }
     else {
