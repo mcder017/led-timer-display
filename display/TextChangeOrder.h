@@ -46,8 +46,8 @@ struct SpacedFont {
 
 class TextChangeOrder {
     public:
-    static const std::string UPLC_FORMATTED_PREFIX;   // start of UPLC formatted text protocol
-    static const std::string UPLC_FORMATTED_SUFFIX;   // end of line for UPLC formatted text protocol
+    inline static const std::string UPLC_FORMATTED_PREFIX = "~+/";   // start of UPLC formatted text protocol
+    inline static const std::string UPLC_FORMATTED_SUFFIX = "\0D";   // end of line for UPLC formatted text protocol
 
     enum ScrollType {   // when velocity is not zero...
 

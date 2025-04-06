@@ -32,8 +32,6 @@ rgb_matrix::Font* SpacedFont::defaultFontPtr = nullptr;
 std::vector<SpacedFont> SpacedFont::registeredSpacedFonts;
 int TextChangeOrder::xOriginDefault = 0;
 int TextChangeOrder::yOriginDefault = 0;
-const std::string TextChangeOrder::UPLC_FORMATTED_PREFIX = "~+/";
-const std::string TextChangeOrder::UPLC_FORMATTED_SUFFIX = "\0D";
 std::vector<TextChangeOrder> TextChangeOrder::registeredTemplates;
 
 TextChangeOrder::TextChangeOrder()
