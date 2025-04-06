@@ -28,9 +28,9 @@ led-timer-display.o : led-timer-display.cc
 
 Displayer.o: Displayer.cc Displayer.h
 
-MessageFormatter.o: MessageFormatter.cc MessageFormatter.h
+MessageFormatter.o: MessageFormatter.cc MessageFormatter.h Displayer.h Receiver.h
 
-Receiver.o: Receiver.cc Receiver.h
+Receiver.o: Receiver.cc Receiver.h TextChangeOrder.h
 
 TextChangeOrder.o: TextChangeOrder.cc TextChangeOrder.h
 
