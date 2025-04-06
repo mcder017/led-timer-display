@@ -26,16 +26,16 @@ public:
                     UNKNOWN};
 
      struct RawMessage {
-          const Protocol protocol;
-          const std::string data;
-          const std::chrono::time_point<std::chrono::system_clock> timestamp;
+          Protocol protocol;
+          std::string data;
+          std::chrono::time_point<std::chrono::system_clock> timestamp;
 
           RawMessage() : protocol(UNKNOWN), data(), timestamp(std::chrono::system_clock::now()) {}
           RawMessage(const Protocol p, std::string  s)
                : protocol(p), data(std::move(s)), timestamp(std::chrono::system_clock::now()) {}
           RawMessage(const Protocol p, std::string  s, std::chrono::time_point<std::chrono::system_clock> t)
                : protocol(p), data(std::move(s)), timestamp(t) {}
-          RawMessage(const RawMessage& other) : protocol(other.protocol), data(other.data), timestamp(other.timestamp) {}; // copy constructor, allows operator=
+          RawMessage(const RawMessage& other) = default; // copy constructor
      };
 
      struct ClientSummary {
