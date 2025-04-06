@@ -35,6 +35,7 @@ public:
                : protocol(p), data(std::move(s)), timestamp(std::chrono::system_clock::now()) {}
           RawMessage(const Protocol p, std::string  s, std::chrono::time_point<std::chrono::system_clock> t)
                : protocol(p), data(std::move(s)), timestamp(t) {}
+          RawMessage(const RawMessage& other) = default; // copy constructor
      };
 
      struct ClientSummary {
@@ -43,6 +44,7 @@ public:
 
           ClientSummary() : client_names(), active_client_name() {}
           ClientSummary(std::vector<std::string> aClientNameVector, std::string aActiveName) : client_names(aClientNameVector), active_client_name(aActiveName) {}
+          ClientSummary(const ClientSummary& other) = default; // copy constructor
      };
 
      Receiver();    // use default port
