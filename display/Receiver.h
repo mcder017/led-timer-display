@@ -35,7 +35,7 @@ public:
                : protocol(p), data(std::move(s)), timestamp(std::chrono::system_clock::now()) {}
           RawMessage(const Protocol p, std::string  s, std::chrono::time_point<std::chrono::system_clock> t)
                : protocol(p), data(std::move(s)), timestamp(t) {}
-          RawMessage(const RawMessage& other) = default; // copy constructor
+          RawMessage(const RawMessage& other) : protocol(other.protocol), data(other.data), timestamp(other.timestamp) {}; // copy constructor, allows operator=
      };
 
      struct ClientSummary {
