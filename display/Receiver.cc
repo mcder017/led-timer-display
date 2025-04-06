@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>  // inet_ntoa
-#include <poll.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
 
@@ -46,8 +45,6 @@ Receiver::Receiver() : Receiver(TCP_PORT_DEFAULT) {}    // forward to other cons
 
 Receiver::~Receiver() {
     lockedStop();
-
-
 }
 
 void Receiver::Start() {

@@ -12,6 +12,7 @@
 #include <chrono>
 #include <utility>
 #include <netinet/in.h>
+#include <poll.h>
 
 class Receiver : public rgb_matrix::Thread {
 public:
