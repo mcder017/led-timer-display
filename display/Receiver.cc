@@ -339,7 +339,7 @@ bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMe
         return false;  // not a UPLC command
     }
     const std::string msg_post_prefix_non_eol = msg.substr(UPLC_COMMAND_PREFIX.length(), msg.length()-1); // remove prefix and end-of-line character
-    if (msg_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
+    if (msg_post_prefix_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
         return false;  // not a UPLC command
     }
 
@@ -350,19 +350,19 @@ bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMe
 }
 
 bool Receiver::parseUPLCFormattedText(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
-    if (strlen(single_line_buffer) <= strlen(TextChangeOrder::UPLC_FORMATTED_PREFIX)) {
+    if (strlen(single_line_buffer) <= TextChangeOrder::UPLC_FORMATTED_PREFIX.length) {
         return false;  // not UPLC formatted text
     }
 
     const std::string msg(single_line_buffer);
-    if (msg.substr(0, strlen(UPLC_FORMATTED_PREFIX)) != UPLC_FORMATTED_PREFIX) {
+    if (msg.substr(0, UPLC_FORMATTED_PREFIX.length()) != UPLC_FORMATTED_PREFIX) {
         return false;  // not a UPLC formatted text
     }
-    if (msg.substr(msg.length()-strlen(UPLC_FORMATTED_SUFFIX), msg.length()) != UPLC_FORMATTED_SUFFIX) {
+    if (msg.substr(msg.length()-UPLC_FORMATTED_SUFFIX.length(), msg.length()) != UPLC_FORMATTED_SUFFIX) {
         return false;  // not a UPLC formatted text
     }
-    const std::string msg_post_prefix_non_eol = msg.substr(strlen(UPLC_FORMATTED_PREFIX), msg.length()-strlen(UPLC_FORMATTED_SUFFIX)); // remove prefix and end-of-line suffix
-    if (msg_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
+    const std::string msg_post_prefix_non_eol = msg.substr(UPLC_FORMATTED_PREFIX.length(), msg.length()-UPLC_FORMATTED_SUFFIX.length()); // remove prefix and end-of-line suffix
+    if (msg_post_prefix_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
         return false;  // not UPLC formatted text
     }
 
@@ -664,7 +664,7 @@ void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveS
     else {
         // move any inactive queued messages to active queue, intercepting any UPLC_COMMAND messages to be handled here
         while (aDescriptorRef.inactive_message_queue.size() > 0) {
-            if (aDescriptorRef.inactive_message_queue.front().type == UPLC_COMMAND) {
+            if (aDescriptorRef.inactive_message_queue.front().protocol == UPLC_COMMAND) {
                 // handle UPLC_COMMAND message here.  do not add to active queue for display
                 handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
             }
@@ -717,14 +717,14 @@ void Receiver::showClients() {
         }
 
         TextChangeOrder clientDescription(TextChangeOrder::getRegisteredTemplate(preferredCommandFormatTemplateIndex));
-        clientDescription.setText(descriptor_support_data[i].source_name_unique);
+        clientDescription.setString(descriptor_support_data[i].source_name_unique);
 
         if (active_display_sockfd >= 0 && socket_descriptors[i].fd == active_display_sockfd) {
             const std::string prefixActive = "*";
-            clientDescription.setText(prefixActive + clientDescription.getText());
+            clientDescription.setString(prefixActive + clientDescription.getText());
         }
 
-        RawMessage clientInfoMessage(UPLC_FORMATTED_TEXT, clientDescription.toUPLCFormattedText());
+        RawMessage clientInfoMessage(UPLC_FORMATTED_TEXT, clientDescription.toUPLCFormattedMessage());
         lockedAppendMessageActiveQueue(clientInfoMessage);
     }
 }
