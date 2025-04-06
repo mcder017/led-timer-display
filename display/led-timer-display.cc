@@ -164,7 +164,7 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
     if (!currIsNoKnown) {
       if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Displaying initial connection message\n");
+        printf("Displaying active connection message\n");
       }
       showNewConnection(myDisplayer, aFont);
     }
