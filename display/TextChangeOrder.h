@@ -26,7 +26,7 @@ struct SpacedFont {
     static SpacedFont getDefaultSpacedFont() {return SpacedFont();}   // default font with default spacing
     
     static inline SpacedFont getRegisteredSpacedFont(int registeredIndex) {
-        if (registeredIndex < 0 || registeredIndex >= registeredSpacedFonts.size()) {
+        if (registeredIndex < 0 || registeredIndex >= (int)registeredSpacedFonts.size()) {
             return getDefaultSpacedFont();
         }
         return registeredSpacedFonts[registeredIndex];
@@ -46,8 +46,8 @@ struct SpacedFont {
 
 class TextChangeOrder {
     public:
-    static constexpr char* UPLC_FORMATTED_PREFIX = "~+/";   // start of UPLC formatted text protocol
-    static constexpr char* UPLC_FORMATTED_SUFFIX = "\0D";   // end of line for UPLC formatted text protocol
+    static const std::string UPLC_FORMATTED_PREFIX = "~+/";   // start of UPLC formatted text protocol
+    static const std::string UPLC_FORMATTED_SUFFIX = "\0D";   // end of line for UPLC formatted text protocol
 
     enum ScrollType {   // when velocity is not zero...
 

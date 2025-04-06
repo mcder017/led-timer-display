@@ -145,15 +145,15 @@ std::string TextChangeOrder::toUPLCFormattedMessage() const {
 }
 
 bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
-    if (messageString.substr(0, strlen(UPLC_FORMATTED_PREFIX)) != UPLC_FORMATTED_PREFIX
-        || messageString.substr(messageString.length()-strlen(UPLC_FORMATTED_SUFFIX), messageString.length()) != UPLC_FORMATTED_SUFFIX) {
+    if (messageString.substr(0, UPLC_FORMATTED_PREFIX.length()) != UPLC_FORMATTED_PREFIX
+        || messageString.substr(messageString.length()-UPLC_FORMATTED_SUFFIX.length(), messageString.length()) != UPLC_FORMATTED_SUFFIX) {
         // no action, format not recognized
         fprintf(stderr, "At conversion, UPLC formatted prefix %s or suffix newline not found:%s\n",
-                UPLC_FORMATTED_PREFIX, messageString.c_str());   
+                UPLC_FORMATTED_PREFIX.c_str(), messageString.c_str());   
         return false;  // not a UPLC formatted message
     }
 
-    int charIndex = strlen(UPLC_FORMATTED_PREFIX);
+    int charIndex = UPLC_FORMATTED_PREFIX.length();
     while (messageString.length() > charIndex) {
         const char c = messageString.at(charIndex);
         switch (c) {
@@ -235,7 +235,7 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case '=': {  // text string
                 charIndex++;
-                text = messageString.substr(charIndex, messageString.length()-strlen(UPLC_FORMATTED_SUFFIX));   // remainder of string, except for suffix, is the message text
+                text = messageString.substr(charIndex, messageString.length()-UPLC_FORMATTED_SUFFIX.length());   // remainder of string, except for suffix, is the message text
                 charIndex = messageString.length();
                 return true;   // done processing all characters
             }
