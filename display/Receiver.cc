@@ -29,7 +29,7 @@ static auto LED_ERROR_MESSAGE_FAIL_EVENT = "DISP(F)";
 static auto CLEAR_DISPLAY_ON_UNRECOGNIZED_MESSAGE = true; 
 
 Receiver::Receiver(int aPort_number)  : running_(false), listen_for_clients_sockfd(-1), active_display_sockfd(-1), num_socket_descriptors(0), clilen(0),
-                                        port_number(aPort_number), pending_active_at_next_message(true),
+                                        pending_active_display_sockfd(-1), port_number(aPort_number), pending_active_at_next_message(true),
                                         closingErrorMessage("") {
     bzero((char *) &cli_addr, sizeof(cli_addr));
     bzero((struct pollfd *) &socket_descriptors, sizeof(socket_descriptors));                                        
@@ -371,6 +371,80 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer, std::deque<R
     return possible_alge_message;
 }
 
+void Receiver::doubleLockedChangeActiveDisplay() {
+    rgb_matrix::MutexLock l(&mutex_msg_queue);
+    rgb_matrix::MutexLock l(&mutex_descriptors);
+    
+    if (pending_active_display_sockfd >= 0) {
+        int old_active_index = -1;
+        if (active_display_sockfd >= 0) {
+            for (int i = 0; i < num_socket_descriptors; i++) {
+                if (socket_descriptors[i].fd == active_display_sockfd) {
+                    old_active_index = i;
+                    break;
+                }
+            }
+        }
+
+        int new_active_index = -1;
+        for (int i = 0; i < num_socket_descriptors; i++) {
+            if (socket_descriptors[i].fd == pending_active_display_sockfd) {
+                new_active_index = i;
+                break;
+            }
+        }
+
+        if (new_active_index < 0) {
+            if (isatty(STDIN_FILENO)) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Changing active display source requested but descriptor no longer found, disregarding.\n");
+            }                    
+        }
+        else {
+            if (isatty(STDIN_FILENO)) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Changing active display source, internal array index %d to %d\n", old_active_index, new_active_index);
+            }                    
+
+            if (active_message_queue.size() > 0) {
+                // move active queue to inactive status
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("De-queueing %d old active messages...\n", active_message_queue.size());
+                }                    
+
+                while (active_message_queue.size() > 0) {
+                    inactive_message_queue[old_active_index].push_back(active_message_queue.front());
+                    active_message_queue.pop_front();
+                }
+            }
+
+            // move inactive queue to active status
+            if (inactive_message_queue[new_active_index].size() > 0) {
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("Queueing %d new active messages...\n", inactive_message_queue[new_active_index].size());
+                }                    
+
+                while (inactive_message_queue[new_active_index].size() > 0) {
+                    active_message_queue.push_back(inactive_message_queue[new_active_index].front());
+                    inactive_message_queue[new_active_index].pop_front();
+                }
+            }
+
+            // update socket reference
+            active_display_sockfd = pending_active_display_sockfd;  // set active display to this source
+            pending_active_display_sockfd = -1;  // clear pending display source
+        }
+    }
+    else {
+        if (isatty(STDIN_FILENO)) {
+            // Only give a message if we are interactive. If connected via pipe, be quiet
+            printf("Changing active source requested but no id set; disregarding.\n");
+        }                    
+    }
+}
+
 void Receiver::Run() {
     const short FLAG_POLLIN = POLLIN;
     const short FLAG_SINGLE_CLOSE = POLLPRI | POLLRDHUP | POLLHUP;  // flags for which we will close single connection
@@ -379,6 +453,11 @@ void Receiver::Run() {
     lockedSetupInitialSocket(); // may ALSO lock running internally
 
     while (lockedTestRunning()) {
+        // check if requested to change active display (and its queue)
+        if (pending_active_display_sockfd >= 0) {
+            doubleLockedChangeActiveDisplay();
+        }
+
         // check for pending connections and data
         int result;
         {   // encapsulate lock
@@ -423,6 +502,7 @@ void Receiver::Run() {
 
                                 if (pending_active_at_next_message && inactive_message_queue[i].size() > 0) {
                                     active_display_sockfd = socket_descriptors[i].fd;  // set active display to this source
+                                    pending_active_at_next_message = false;  // only set active display once, at first message; not automatically at every disconnect of active display
                                 }
 
                                 // trim if inactive queue, or move inactive entries to active queue
@@ -564,6 +644,48 @@ void Receiver::closeSingleSocket(int aDescriptor) {
             // Only give a message if we are interactive. If connected via pipe, be quiet
             printf("Closed single client, now %d connected.\n", num_socket_descriptors-1);  // -1 as port listener is not a client
         }    
+    }
+}
+
+ClientSummary Receiver::getClientSummary() {
+    rgb_matrix::MutexLock l(&mutex_descriptors);
+
+    ClientSummary summary(num_socket_descriptors-1, -1);
+    if (active_display_sockfd >= 0) {
+         for (int i=0; i < num_socket_descriptors; i++) {
+              if (socket_descriptors[i].fd == active_display_sockfd) {
+                   summary.active_client_index = i - 1; // -1 as first socket is port listener
+                   break;
+              }
+         }
+    }
+    return summary;
+}
+
+void Receiver::setActiveClient(int aClientIndex) {
+    // caution to only hold one lock at a time, to avoid deadlock across threads
+
+    { // encapsulate lock
+        rgb_matrix::MutexLock l(&mutex_descriptors);
+
+        if (aClientIndex < 0 || aClientIndex >= num_socket_descriptors-1) {
+            // invalid index. note that clients could have change since call to getClientSummary, so caller should query that method again
+            if (isatty(STDIN_FILENO)) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Requesting changing active source to client summary index %d no longer valid (clients now 0..%d), disregarding\n", aClientIndex, num_socket_descriptors-1);  // -1 as first socket is port listener
+            }                    
+    
+            pending_active_display_sockfd = -1; 
+        }
+        else {
+            if (isatty(STDIN_FILENO)) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Requesting changing active source to client summary index %d, current internal index %d\n", aClientIndex, aClientIndex+1);  // +1 as first socket is port listener
+            }                    
+    
+            pending_active_display_sockfd = socket_descriptors[aClientIndex+1].fd; // +1 as first socket is port listener
+            // actual update will occur in Run() thread            
+        }
     }
 }
 

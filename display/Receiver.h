@@ -74,28 +74,9 @@ public:
           return num_socket_descriptors < 2;  // first socket is port listener
      }
 
-     ClientSummary getClientSummary() {
-          rgb_matrix::MutexLock l(&mutex_descriptors);
-          ClientSummary summary(num_socket_descriptors-1, -1);
-          if (active_display_sockfd >= 0) {
-               for (int i=0; i < num_socket_descriptors; i++) {
-                    if (socket_descriptors[i].fd == active_display_sockfd) {
-                         summary.active_client_index = i - 1; // -1 as first socket is port listener
-                         break;
-                    }
-               }
-          }
-          return summary;
-     }
+     ClientSummary getClientSummary();
 
-     bool setActiveClient(int aClientIndex) {
-          rgb_matrix::MutexLock l(&mutex_descriptors);
-          if (aClientIndex < 0 || aClientIndex >= num_socket_descriptors-1) {
-               return false; // invalid index. note that clients could have change since call to getClientSummary, so caller should just check again
-          }
-          active_display_sockfd = socket_descriptors[aClientIndex+1].fd; // +1 as first socket is port listener
-          return true;
-     }
+     bool setActiveClient(int aClientIndex);
 
      std::string getLocalAddresses();
 
@@ -149,6 +130,7 @@ private:
      struct pollfd socket_descriptors[MAX_OPEN_SOCKETS];    
      int num_socket_descriptors;                            
      int active_display_sockfd;              // entry in the socket_descriptors array for source being displayed on the LED board
+     int pending_active_display_sockfd;      // requested active display source, but not yet set
 
      // locks descriptors internally
      void lockedSetupInitialSocket();  // locks descriptors; may also lock running
