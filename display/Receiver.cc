@@ -31,7 +31,7 @@ Receiver::Receiver(int aPort_number)  : port_number(aPort_number), listen_for_cl
                                         closingErrorMessage(""), 
                                         running_(false), pending_active_at_next_message(true), 
                                         num_socket_descriptors(0),
-                                        active_display_sockfd(-1), pending_active_display_sockfd(-1)                                        
+                                        active_display_sockfd(-1), pending_active_display_name("")                                        
                                          {
     bzero((struct pollfd *) &socket_descriptors, sizeof(socket_descriptors));                                        
 

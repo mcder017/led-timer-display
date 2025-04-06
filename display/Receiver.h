@@ -8,6 +8,7 @@
 #include "thread.h"
 
 #include <string>
+#include <vector>
 #include <deque>
 #include <chrono>
 #include <utility>
