@@ -19,7 +19,7 @@ public:
      static constexpr int TCP_PORT_DEFAULT = 21967;
 
      static constexpr uint32_t PROTOCOL_MESSAGE_MAX_LENGTH = 96;   // longest valid protocol message, including end-of-line
-     
+
      enum Protocol {ALGE_DLINE,    // see "Alge timing manual for D-LINE / D-SAT"
                     SIMPLE_TEXT,  // data is short string to display on board
                     UNKNOWN};
@@ -78,8 +78,7 @@ public:
      }
 
      ClientSummary getClientSummary();
-
-     bool setActiveClient(int aClientIndex);
+     void setActiveClient(int aClientIndex);
 
      std::string getLocalAddresses();
 

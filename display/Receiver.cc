@@ -221,11 +221,11 @@ bool Receiver::checkAndAppendData(int source_descriptor, std::string& unprocesse
 
             if (isatty(STDIN_FILENO)) {
                 // Only give a message if we are interactive. If connected via pipe, be quiet
-                printf("%s,Rcvd(len=%d)\n", (source_descriptor==active_display_sockfd ? "Active source: " : "Inactive: "), num_read);
+                printf("%s,Rcvd(len=%d)\n", (source_descriptor==active_display_sockfd ? "Active source: " : "Inactive: "), result_flag);
             }
 
             // accumulate. caller can handle partial message, or more than one protocol message, in buffer string
-            unprocessed_buffer.append(socket_buffer, num_read);
+            unprocessed_buffer.append(socket_buffer, result_flag);
         }
         else if (result_flag == 0) {   // client indicates end of connection
             if (isatty(STDIN_FILENO)) {
@@ -376,8 +376,8 @@ bool Receiver::parseAlgeLineToQueue(const char* single_line_buffer, std::deque<R
 }
 
 void Receiver::doubleLockedChangeActiveDisplay() {
-    rgb_matrix::MutexLock l(&mutex_msg_queue);
-    rgb_matrix::MutexLock l(&mutex_descriptors);
+    rgb_matrix::MutexLock l1(&mutex_msg_queue);
+    rgb_matrix::MutexLock l2(&mutex_descriptors);
     
     if (pending_active_display_sockfd >= 0) {
         int old_active_index = -1;
@@ -414,7 +414,7 @@ void Receiver::doubleLockedChangeActiveDisplay() {
                 // move active queue to inactive status
                 if (isatty(STDIN_FILENO)) {
                     // Only give a message if we are interactive. If connected via pipe, be quiet
-                    printf("De-queueing %d old active messages...\n", active_message_queue.size());
+                    printf("De-queueing %ld old active messages...\n", active_message_queue.size());
                 }                    
 
                 while (active_message_queue.size() > 0) {
@@ -427,7 +427,7 @@ void Receiver::doubleLockedChangeActiveDisplay() {
             if (inactive_message_queue[new_active_index].size() > 0) {
                 if (isatty(STDIN_FILENO)) {
                     // Only give a message if we are interactive. If connected via pipe, be quiet
-                    printf("Queueing %d new active messages...\n", inactive_message_queue[new_active_index].size());
+                    printf("Queueing %ld new active messages...\n", inactive_message_queue[new_active_index].size());
                 }                    
 
                 while (inactive_message_queue[new_active_index].size() > 0) {
@@ -520,7 +520,7 @@ void Receiver::Run() {
 
                                 if (isatty(STDIN_FILENO)) {
                                     // Only give a message if we are interactive. If connected via pipe, be quiet
-                                    printf("Closing single connection gracefully, index %d, %s, %s\n", i, , (isActiveDisplay ? "active display" : "not active display"), (isMainListen ? "port listener" : "not port listener"));
+                                    printf("Closing single connection gracefully, index %d, %s, %s\n", i, (isActiveDisplay ? "active display" : "not active display"), (isMainListen ? "port listener" : "not port listener"));
                                 }                    
 
                                 closeSingleSocket(socket_descriptors[i].fd);
@@ -538,7 +538,7 @@ void Receiver::Run() {
                         if ((socket_descriptors[i].revents & FLAG_SINGLE_CLOSE) != 0) {                    
                             if (isatty(STDIN_FILENO)) {
                                 // Only give a message if we are interactive. If connected via pipe, be quiet
-                                printf("Closing single connection gracefully, index %d, %s, %s\n", i, , (isActiveDisplay ? "active display" : "not active display"), (isMainListen ? "port listener" : "not port listener"));
+                                printf("Closing single connection gracefully, index %d, %s, %s\n", i, (isActiveDisplay ? "active display" : "not active display"), (isMainListen ? "port listener" : "not port listener"));
                             }                    
                         }
                         if ((socket_descriptors[i].revents & FLAG_DO_STOP) != 0) {
@@ -651,7 +651,7 @@ void Receiver::closeSingleSocket(int aDescriptor) {
     }
 }
 
-ClientSummary Receiver::getClientSummary() {
+Receiver::ClientSummary Receiver::getClientSummary() {
     rgb_matrix::MutexLock l(&mutex_descriptors);
 
     ClientSummary summary(num_socket_descriptors-1, -1);
