@@ -601,6 +601,7 @@ void Receiver::lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveS
 }
 
 void Receiver::compressSockets() {
+    const int initial_descriptors = num_socket_descriptors;
     for (int i = 0; i < num_socket_descriptors; i++) {
       if (socket_descriptors[i].fd == -1)
       {
@@ -610,6 +611,11 @@ void Receiver::compressSockets() {
         i--;
         num_socket_descriptors--;
       }
+    }
+
+    if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Compressed array from %d, now %d clients connected.\n", initial_descriptors-1, num_socket_descriptors-1);  // -1 as port listener is not a client
     }
 }
 
@@ -650,7 +656,7 @@ void Receiver::closeSingleSocket(int aDescriptor) {
 
         if (isatty(STDIN_FILENO)) {
             // Only give a message if we are interactive. If connected via pipe, be quiet
-            printf("Closed single client, now %d connected.\n", num_socket_descriptors-1);  // -1 as port listener is not a client
+            printf("Closed single client, array not yet compressed.\n");
         }    
     }
 }
