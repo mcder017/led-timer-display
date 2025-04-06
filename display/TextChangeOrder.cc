@@ -27,9 +27,12 @@ int SpacedFont::getDefaultLetterSpacing() {
     return DEFAULT_SPACING;
 }
 
+// static variable initialization
 rgb_matrix::Font* SpacedFont::defaultFontPtr = nullptr;
 int xOriginDefault = 0;
 int yOriginDefault = 0;
+std::string UPLC_FORMATTED_PREFIX = "~+/";
+std::string UPLC_FORMATTED_SUFFIX = "\0D";
 
 TextChangeOrder::TextChangeOrder()
     :
