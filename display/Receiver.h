@@ -37,10 +37,10 @@ public:
      };
 
      struct ClientSummary {
-          int num_clients;
-          int active_client_index; // if negative, no active client.  otherwise, zero-based index of currently active client
+          std::vector<std::string> client_names; // list of unique names (based on addresses) of clients currently connected
+          std::string active_client_name; // if empty, no active client.  otherwise, an entry from client_names
 
-          ClientSummary(int aClientCount, int aActiveIndex) : num_clients(aClientCount), active_client_index(aActiveIndex) {}
+          ClientSummary(std::vector<std::string> aClientNameVector, std::string aActiveName) : client_names(aClientNameVector), active_client_name(aActiveName) {}
      };
 
      Receiver();    // use default port
@@ -58,7 +58,7 @@ public:
      // Implement this and run while running() returns true.
      void Run() override;
 
-     bool isRunning() {return lockedTestRunning();}    // sets MutexLock internally
+     bool isRunning() {return lockedTestRunning();}    // locks mutex_is_running internally
 
      bool isPendingMessage() {
           rgb_matrix::MutexLock l(&mutex_msg_queue);
@@ -77,8 +77,8 @@ public:
           return (num_socket_descriptors < 2) || (active_display_sockfd < 0 && !pending_active_at_next_message);   // 1st descriptor is port listener
      }
 
-     ClientSummary getClientSummary();
-     void setActiveClient(int aClientIndex);
+     ClientSummary getClientSummary();                 // locks mutex_descriptors internally
+     void setActiveClient(std::string aClientName);    // locks mutex_descriptors internally
 
      std::string getLocalAddresses();
 
@@ -102,13 +102,21 @@ protected:
      }
 
 private:
+     struct DescriptorInfo {
+          // no lock needed, only used by this object's Run thread
+          std::string tcp_unprocessed;  // empty buffer to accumulate unprocessed messages separated by newlines
+          std::deque<RawMessage> inactive_message_queue; // queue of messages received from socket and not yet deleted nor put in active Receiver queue
+          std::string source_name_unique;  // address of source, for descriptor selection lookup
+
+          DescriptorInfo() : tcp_unprocessed(), inactive_message_queue(), source_name_unique() {}
+          DescriptorInfo(std::string aSourceAddressName) : tcp_unprocessed(), inactive_message_queue(), source_name_unique(std::move(aSourceAddressName)) {}
+          DescriptorInfo(const DescriptorInfo& other) = default; // copy constructor
+     };
      static const int MAX_OPEN_SOCKETS = 20;
 
      // no lock needed, only used by this object's Run thread
      int port_number;
      int listen_for_clients_sockfd;          // entry in the socket_descriptors array for listening for new clients
-     std::string tcp_unprocessed[MAX_OPEN_SOCKETS];  // empty buffers to accumulate unprocessed messages separated by newlines
-     std::deque<RawMessage> inactive_message_queue[MAX_OPEN_SOCKETS]; // queue of messages received from each socket
      std::string closingErrorMessage;   // if not empty, displayable error message to queue when stopping thread
 
      // If multiple locks, must ensure can not have deadlock between threads waiting for resources.
@@ -121,34 +129,35 @@ private:
      rgb_matrix::Mutex mutex_is_running;
      rgb_matrix::Mutex mutex_descriptors;
 
-     // use MutexLock is_running to allow thread-safe read&write on this group
+     // use MutexLock on mutex_is_running to allow thread-safe read&write on this group
      bool running_;                          
 
-     // use MutexLock msg_queue to allow thread-safe read&write on this group
+     // use MutexLock on mutex_msg_queue to allow thread-safe read&write on this group
      std::deque<RawMessage> active_message_queue;     
 
-     // use MutexLock descriptors to allow thread-safe read&write on this group
+     // use MutexLock on mutex_descriptors to allow thread-safe read&write on this group
      bool pending_active_at_next_message;  // if true, first message received will determine the active client
-     struct pollfd socket_descriptors[MAX_OPEN_SOCKETS];    
+     struct pollfd socket_descriptors[MAX_OPEN_SOCKETS];    // socket descriptor for each client
+     DescriptorInfo descriptor_support_data[MAX_OPEN_SOCKETS];      // other information about socket connection and data for each client
      int num_socket_descriptors;                            
-     int active_display_sockfd;              // entry in the socket_descriptors array for source being displayed on the LED board
-     int pending_active_display_sockfd;      // requested active display source, but not yet set
+     int active_display_sockfd;                   // entry in the socket_descriptors array for source being displayed on the LED board
+     std::string pending_active_display_name;     // requested active display source, but not yet set
 
-     // locks msg_queue AND descriptors internally
-     void doubleLockedChangeActiveDisplay();
+     // locks on mutex_msg_queue AND on mutex_descriptors internally
+     void doubleLockedChangeActiveDisplay(std::string target_client_name);
 
-     // locks descriptors internally
+     // locks on mutex_descriptors internally
      void lockedSetupInitialSocket();  // locks descriptors; may also lock running
 
-     // locks msg_queue internally
+     // locks on mutex_msg_queue internally
      void lockedProcessQueue(std::deque<RawMessage>& aQueue, bool isActiveSource);
 
-     // before calling, use MutexLock descriptors to allow thread-safe read&write on this group
+     // before calling, use MutexLock on mutex_descriptors to allow thread-safe read&write on this group
      void addMonitoring(int new_descriptor);
      void checkAndAcceptConnection();
      bool checkAndAppendData(int source_descriptor, std::string& unprocessed_buffer); // returns true if data found.  if not, client is disconnecting, or error.
      void closeAllSockets();
-     void closeSingleSocket(int aDescriptor);     // may also lock running
+     void closeSingleSocket(int aDescriptor);     // may also lock on mutex_running
      void compressSockets();
 
      // no lock needed, only used by this object's Run thread
