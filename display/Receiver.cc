@@ -221,7 +221,7 @@ bool Receiver::checkAndAppendData(int source_descriptor, std::string& unprocesse
 
             if (isatty(STDIN_FILENO)) {
                 // Only give a message if we are interactive. If connected via pipe, be quiet
-                printf("%s,Rcvd(len=%d)\n", (source_descriptor==active_display_sockfd ? "Active source: " : "Inactive: "), result_flag);
+                printf("%s%s Rcvd(len=%d)\n", (pending_active_at_next_message ? "(source pending) " : ""), (source_descriptor==active_display_sockfd ? "Active source: " : "Inactive: "), result_flag);
             }
 
             // accumulate. caller can handle partial message, or more than one protocol message, in buffer string
