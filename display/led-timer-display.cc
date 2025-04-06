@@ -162,6 +162,10 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
 
     // use text to indicate new connection
     if (!currIsNoKnown) {
+      if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Displaying initial connection message\n");
+      }
       showNewConnection(myDisplayer, aFont);
     }
   }
@@ -304,7 +308,8 @@ int main(int argc, char *argv[]) {
   }
 
   bool currIsNoKnownConnections = false;
-  updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections, true);
+  updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections, 
+                          true);  // force report of initial connection status
 
   while (!interrupt_received) {
     updateReportConnections(myDisplayer, myReceiver, smallSpacedFont, currIsNoKnownConnections);
