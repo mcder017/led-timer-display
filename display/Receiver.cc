@@ -462,7 +462,7 @@ void Receiver::Run() {
     while (lockedTestRunning()) {
         bool debugVerbose = last_change_time == 0 || (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE); // TODO DEBUG heartbeat checkin
         if (debugVerbose) last_change_time = std::time(nullptr); // TODO DEBUG heartbeat checkin
-        if (debugVerbose) printf("Run: Heartbeat\n");
+        if (debugVerbose) printf("Run: Heartbeat\n");   // TODO DEBUG
 
         // check if requested to change active display (and its queue)
         if (pending_active_display_sockfd >= 0) {
