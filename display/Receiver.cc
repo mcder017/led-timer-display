@@ -658,7 +658,7 @@ void Receiver::Run() {
 void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveSource) {
     if (!isActiveSource) {
         // process any command messages now, and erase them from the inactive queue
-        for (auto iter = aDescriptorRef.inactive_message_queue.begin(); i != aDescriptorRef.inactive_message_queue.end() ; /*NOTE: no incrementation of the iterator here*/) {
+        for (auto iter = aDescriptorRef.inactive_message_queue.begin(); iter != aDescriptorRef.inactive_message_queue.end() ; /*NOTE: no incrementation of the iterator here*/) {
             if (*iter.protocol == UPLC_COMMAND) {
                 // handle UPLC_COMMAND message here.  do not add to active queue for display
                 handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
