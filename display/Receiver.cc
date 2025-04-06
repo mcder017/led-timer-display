@@ -660,8 +660,13 @@ void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveS
         // process any command messages now, and erase them from the inactive queue
         for (auto iter = aDescriptorRef.inactive_message_queue.begin(); iter != aDescriptorRef.inactive_message_queue.end() ; /*NOTE: no incrementation of the iterator here*/) {
             if ((*iter).protocol == UPLC_COMMAND) {
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("Handling command from client (not active display)\n");
+                }
+
                 // handle UPLC_COMMAND message here.  do not add to active queue for display
-                handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
+                handleUPLCCommand((*iter).data, aDescriptorRef);
 
                 iter = aDescriptorRef.inactive_message_queue.erase(iter); // erase returns the next iterator
             }
@@ -680,6 +685,11 @@ void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveS
         // move any inactive queued messages to active queue, intercepting any UPLC_COMMAND messages to be handled here
         while (aDescriptorRef.inactive_message_queue.size() > 0) {
             if (aDescriptorRef.inactive_message_queue.front().protocol == UPLC_COMMAND) {
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("Handling command from client (active display)\n");
+                }
+
                 // handle UPLC_COMMAND message here.  do not add to active queue for display
                 handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
             }
