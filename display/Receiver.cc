@@ -657,9 +657,22 @@ void Receiver::Run() {
 
 void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveSource) {
     if (!isActiveSource) {
+        // process any command messages now, and erase them from the inactive queue
+        for (auto iter = aDescriptorRef.inactive_message_queue.begin(); i != aDescriptorRef.inactive_message_queue.end() ; /*NOTE: no incrementation of the iterator here*/) {
+            if (*iter.protocol == UPLC_COMMAND) {
+                // handle UPLC_COMMAND message here.  do not add to active queue for display
+                handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
+
+                iter = aDescriptorRef.inactive_message_queue.erase(iter); // erase returns the next iterator
+            }
+            else {
+                ++iter; // otherwise increment it manually
+            }
+        }
+
+        // for sources that are not being displayed,
+        // shrink queue to only retain most recent display message
         while (aDescriptorRef.inactive_message_queue.size() > 1) {    
-            // for sources that are not being displayed,
-            // shrink queue to only retain most recent message
             aDescriptorRef.inactive_message_queue.pop_front();
         }
     }
