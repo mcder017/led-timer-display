@@ -455,7 +455,7 @@ void Receiver::Run() {
     while (lockedTestRunning()) {
         // check if requested to change active display (and its queue)
         if (pending_active_display_sockfd >= 0) {
-            doubleLockedChangeActiveDisplay();
+            doubleLockedChangeActiveDisplay();          // locks msg_queue AND descriptors
         }
 
         // check for pending connections and data
