@@ -72,9 +72,9 @@ public:
           return pendingMessage;
      }
 
-     bool isNoKnownConnections() {
+     bool isNoActiveSourceOrPending() {
           rgb_matrix::MutexLock l(&mutex_descriptors);
-          return num_socket_descriptors < 2;  // first socket is port listener
+          return active_display_sockfd < 0 && !pending_active_at_next_message;
      }
 
      ClientSummary getClientSummary();
@@ -109,7 +109,6 @@ private:
      int listen_for_clients_sockfd;          // entry in the socket_descriptors array for listening for new clients
      std::string tcp_unprocessed[MAX_OPEN_SOCKETS];  // empty buffers to accumulate unprocessed messages separated by newlines
      std::deque<RawMessage> inactive_message_queue[MAX_OPEN_SOCKETS]; // queue of messages received from each socket
-     bool pending_active_at_next_message;  // if true, first message received will determine the active client
      std::string closingErrorMessage;   // if not empty, displayable error message to queue when stopping thread
 
      // If multiple locks, must ensure can not have deadlock between threads waiting for resources.
@@ -129,6 +128,7 @@ private:
      std::deque<RawMessage> active_message_queue;     
 
      // use MutexLock descriptors to allow thread-safe read&write on this group
+     bool pending_active_at_next_message;  // if true, first message received will determine the active client
      struct pollfd socket_descriptors[MAX_OPEN_SOCKETS];    
      int num_socket_descriptors;                            
      int active_display_sockfd;              // entry in the socket_descriptors array for source being displayed on the LED board
