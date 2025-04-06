@@ -29,10 +29,11 @@ int SpacedFont::getDefaultLetterSpacing() {
 
 // static variable initialization
 rgb_matrix::Font* SpacedFont::defaultFontPtr = nullptr;
-int xOriginDefault = 0;
-int yOriginDefault = 0;
-std::string UPLC_FORMATTED_PREFIX = "~+/";
-std::string UPLC_FORMATTED_SUFFIX = "\0D";
+std::vector<SpacedFont> SpacedFont::registeredSpacedFonts;
+int TextChangeOrder::xOriginDefault = 0;
+int TextChangeOrder::yOriginDefault = 0;
+std::string TextChangeOrder::UPLC_FORMATTED_PREFIX = "~+/";
+std::string TextChangeOrder::UPLC_FORMATTED_SUFFIX = "\0D";
 
 TextChangeOrder::TextChangeOrder()
     :
@@ -157,7 +158,7 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
     }
 
     int charIndex = UPLC_FORMATTED_PREFIX.length();
-    while (messageString.length() > charIndex) {
+    while ((int)messageString.length() > charIndex) {
         const char c = messageString.at(charIndex);
         switch (c) {
             case '!': {  // font prefix
