@@ -272,7 +272,8 @@ int main(int argc, char *argv[]) {
                    .setVelocity(speed).setVelocityIsHorizontal(set_horizontal_scroll)
                    .setVelocityScrollType(set_scroll_type)
                    .setXOrigin(x_orig).setYOrigin(y_orig);
-  const int baseTextTemplateIndex = TextChangeOrder::registerTemplate(baseOrderTemplate);       
+  //const int baseTextTemplateIndex = 
+    TextChangeOrder::registerTemplate(baseOrderTemplate);       
 
   SpacedFont smallSpacedFont(nullptr,0);  // specific letter spacing
   rgb_matrix::Font smallFont;
@@ -283,14 +284,15 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Couldn't read internal font '%s'\n", BDF_5X7_STRING);
     // smalLSpacedFont will keep default font
   }
-  const int smallFontRegisterIndex = SpacedFont::registerFont(SpacedFont(smallFont, letter_spacing));  // register the small font
+  const int smallFontRegisterIndex = SpacedFont::registerFont(smallSpacedFont);  // register the small font
   TextChangeOrder smallFontTemplate(SpacedFont::getRegisteredSpacedFont(smallFontRegisterIndex), "");
   smallFontTemplate.setForegroundColor(rgb_matrix::Color(0,255,0))  // green
                     .setBackgroundColor(rgb_matrix::Color(0,0,0))   // black
                     .setVelocity(speed).setVelocityIsHorizontal(false)
                     .setVelocityScrollType(set_scroll_type)
                     .setXOrigin(x_orig).setYOrigin(0);
-  const int smallTextTemplateIndex = TextChangeOrder::registerTemplate(smallFontTemplate);       
+  //const int smallTextTemplateIndex = 
+    TextChangeOrder::registerTemplate(smallFontTemplate);       
 
   TextChangeOrder smallFontVerticalScrollTemplate(SpacedFont::getRegisteredSpacedFont(smallFontRegisterIndex), "");
   smallFontVerticalScrollTemplate.setForegroundColor(rgb_matrix::Color(0,255,0))  // green
@@ -306,7 +308,8 @@ int main(int argc, char *argv[]) {
                                     .setVelocity(-12.0).setVelocityIsHorizontal(true)
                                     .setVelocityScrollType(TextChangeOrder::SINGLE_ONOFF)
                                     .setXOrigin(x_orig).setYOrigin(0);
-  const int smallHorizontalScrollTextTemplateIndex = TextChangeOrder::registerTemplate(smallFontHorizontalScrollTemplate);       
+  //const int smallHorizontalScrollTextTemplateIndex = 
+    TextChangeOrder::registerTemplate(smallFontHorizontalScrollTemplate);       
                           
   // ****************************************************************************
   Displayer myDisplayer(matrix_options, runtime_opt);
@@ -332,13 +335,13 @@ int main(int argc, char *argv[]) {
   }
 
   bool currIsNoActiveSource = false;
-  updateReportConnections(myDisplayer, myReceiver, smallFontVerticalTemplate, currIsNoActiveSource, 
+  updateReportConnections(myDisplayer, myReceiver, smallFontVerticalScrollTemplate, currIsNoActiveSource, 
                           true);  // force report of initial connection status
                  
   // ****************************************************************************
   while (!interrupt_received) {
 
-    updateReportConnections(myDisplayer, myReceiver, smallFontVerticalTemplate, currIsNoActiveSource);
+    updateReportConnections(myDisplayer, myReceiver, smallFontVerticalScrollTemplate, currIsNoActiveSource);
 
     // if new valid message,  decide what to display
     if (myReceiver.isPendingMessage()) {
