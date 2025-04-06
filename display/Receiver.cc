@@ -460,7 +460,7 @@ void Receiver::Run() {
     lockedSetupInitialSocket(); // may ALSO lock running internally
 
     while (lockedTestRunning()) {
-        bool debugVerbose = last_change_time == 0 || std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE); // TODO DEBUG heartbeat checkin
+        bool debugVerbose = last_change_time == 0 || (std::time(nullptr) - last_change_time >= SECONDS_BLANK_TO_DECLARE_IDLE); // TODO DEBUG heartbeat checkin
         if (debugVerbose) last_change_time = std::time(nullptr); // TODO DEBUG heartbeat checkin
         if (debugVerbose) printf("Run: Heartbeat\n");
 
