@@ -677,7 +677,7 @@ Receiver::ClientSummary Receiver::getClientSummary() {
 }
 
 void Receiver::setActiveClient(int aClientIndex) {
-    // caution to only hold one lock at a time, to avoid deadlock across threads
+    // caution to only hold one lock at a time on any public calls (or any thread other than Run thread), to avoid deadlock across threads
 
     { // encapsulate lock
         rgb_matrix::MutexLock l(&mutex_descriptors);
@@ -698,6 +698,7 @@ void Receiver::setActiveClient(int aClientIndex) {
             }                    
     
             pending_active_display_sockfd = socket_descriptors[aClientIndex+1].fd; // +1 as first socket is port listener
+            pending_active_at_next_message = false;     // given active command, ensure not set by arbitrary first message
             // actual update will occur in Run() thread            
         }
     }
