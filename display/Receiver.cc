@@ -327,7 +327,7 @@ void Receiver::parseLineToQueue(const char* single_line_buffer, std::deque<RawMe
 }
 
 bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMessage>& aQueue) {
-    if (strlen(single_line_buffer) <= strlen(UPLC_COMMAND_PREFIX)) {
+    if (strlen(single_line_buffer) <= UPLC_COMMAND_PREFIX.length()) {
         return false;  // not a UPLC command
     }
     if (single_line_buffer[strlen(single_line_buffer)-1] != PROTOCOL_END_OF_LINE) {
@@ -335,10 +335,10 @@ bool Receiver::parseUPLCCommand(const char* single_line_buffer, std::deque<RawMe
     }
 
     const std::string msg(single_line_buffer);
-    if (msg.substr(0, strlen(UPLC_COMMAND_PREFIX)) != UPLC_COMMAND_PREFIX) {
+    if (msg.substr(0, UPLC_COMMAND_PREFIX.length()) != UPLC_COMMAND_PREFIX) {
         return false;  // not a UPLC command
     }
-    const std::string msg_post_prefix_non_eol = msg.substr(strlen(UPLC_COMMAND_PREFIX), msg.length()-1); // remove prefix and end-of-line character
+    const std::string msg_post_prefix_non_eol = msg.substr(UPLC_COMMAND_PREFIX.length(), msg.length()-1); // remove prefix and end-of-line character
     if (msg_non_eol.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890 ~!@#$%^&*()_+`-={}[]|:;\"'<>?,./\\") != std::string::npos) {
         return false;  // not a UPLC command
     }
@@ -684,15 +684,15 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
         printf("Received UPLC command: %s\n", nonprintableToHexadecimal(message_string.c_str()).c_str());
     }                    
 
-    if (message_string.length() < strlen(UPLC_COMMAND_PREFIX)+1) {
+    if (message_string.length() < UPLC_COMMAND_PREFIX.length()+1) {
         fprintf(stderr, "UPLC command requested but prefix %s not found:%s\n",
-            UPLC_COMMAND_PREFIX, nonprintableToHexadecimal(message_string.c_str()).c_str());
+            UPLC_COMMAND_PREFIX.c_str(), nonprintableToHexadecimal(message_string.c_str()).c_str());
         return;  // not a UPLC command
     }
 
-    switch(message_string.at(strlen(UPLC_COMMAND_PREFIX))) {
+    switch(message_string.at(UPLC_COMMAND_PREFIX.length())) {
         case UPLC_COMMAND_SET_ACTIVE_CLIENT:
-            internalSetActiveClient(message_string.substr(strlen(UPLC_COMMAND_PREFIX)+1, message_string.length()-1));  // +1 to skip command char, -1 to skip end-of-line char
+            internalSetActiveClient(message_string.substr(UPLC_COMMAND_PREFIX.length()+1, message_string.length()-1));  // +1 to skip command char, -1 to skip end-of-line char
             break;
         case UPLC_COMMAND_SHOW_CLIENTS:
             showClients();
@@ -705,7 +705,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
         default:
             fprintf(stderr, "UPLC command requested but command char %c not recognized:%s\n",
-                message_string.at(strlen(UPLC_COMMAND_PREFIX)), nonprintableToHexadecimal(message_string.c_str()).c_str());
+                message_string.at(UPLC_COMMAND_PREFIX.length()), nonprintableToHexadecimal(message_string.c_str()).c_str());
             break;
     }
 }
