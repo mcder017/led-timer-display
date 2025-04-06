@@ -100,7 +100,7 @@ protected:
      static constexpr char CARRIAGE_RETURN = '\x0D';
      static constexpr char LINE_FEED = '\x0A';
 
-     static const std::string UPLC_COMMAND_PREFIX = "~)'";
+     inline static const std::string UPLC_COMMAND_PREFIX = "~)'";
      static constexpr char UPLC_COMMAND_SET_ACTIVE_CLIENT = '*';
      static constexpr char UPLC_COMMAND_SHOW_CLIENTS = '!';
      static constexpr char UPLC_COMMAND_TRANSMIT_CLIENTS = '?';

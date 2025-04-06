@@ -108,7 +108,7 @@ class TextChangeOrder {
     static void setYOriginDefault(int aY_origin) {yOriginDefault = aY_origin;}
 
     static inline TextChangeOrder getRegisteredTemplate(int registeredIndex) {
-        if (registeredIndex < 0 || registeredIndex >= registeredTemplates.size()) {
+        if (registeredIndex < 0 || registeredIndex >= (int)registeredTemplates.size()) {
             return TextChangeOrder();
         }
         return registeredTemplates[registeredIndex];
