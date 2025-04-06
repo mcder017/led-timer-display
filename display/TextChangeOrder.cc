@@ -149,7 +149,7 @@ std::string TextChangeOrder::toUPLCFormattedMessage() const {
 
 bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
     if (messageString.substr(0, UPLC_FORMATTED_PREFIX.length()) != UPLC_FORMATTED_PREFIX
-        || messageString.substr(messageString.length()-UPLC_FORMATTED_SUFFIX.length(), messageString.length()) != UPLC_FORMATTED_SUFFIX) {
+        || messageString.substr(messageString.length()-UPLC_FORMATTED_SUFFIX.length(), UPLC_FORMATTED_SUFFIX.length()) != UPLC_FORMATTED_SUFFIX) {
         // no action, format not recognized
         fprintf(stderr, "At conversion, UPLC formatted prefix %s or suffix newline not found:%s\n",
                 UPLC_FORMATTED_PREFIX.c_str(), messageString.c_str());   
@@ -183,10 +183,10 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'F': {  // foreground color
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, charIndex+6).c_str(), "%hhu%hhu%hhu", &foregroundColor.r, &foregroundColor.g, &foregroundColor.b) != 3) {
+                if (sscanf(messageString.substr(charIndex, 6).c_str(), "%hhu%hhu%hhu", &foregroundColor.r, &foregroundColor.g, &foregroundColor.b) != 3) {
                     foregroundColor = getDefaultForegroundColor();  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted foreground color %s not found:%s\n",
-                            messageString.substr(charIndex, charIndex+6).c_str(), messageString.c_str());
+                            messageString.substr(charIndex, 6).c_str(), messageString.c_str());
                     return false;
                 }
                 charIndex += 6;  // skip over the color codes
@@ -194,10 +194,10 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'B': {  // background color
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, charIndex+6).c_str(), "%hhu%hhu%hhu", &backgroundColor.r, &backgroundColor.g, &backgroundColor.b) != 3) {
+                if (sscanf(messageString.substr(charIndex, 6).c_str(), "%hhu%hhu%hhu", &backgroundColor.r, &backgroundColor.g, &backgroundColor.b) != 3) {
                     backgroundColor = getDefaultBackgroundColor();  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted background color %s not found:%s\n",
-                            messageString.substr(charIndex, charIndex+6).c_str(), messageString.c_str());
+                            messageString.substr(charIndex, 6).c_str(), messageString.c_str());
                     return false;
                 }
                 charIndex += 6;  // skip over the color codes
@@ -205,10 +205,10 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'V': {  // velocity
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, charIndex+5).c_str(), "%f", &velocity) != 1) {
+                if (sscanf(messageString.substr(charIndex, 5).c_str(), "%f", &velocity) != 1) {
                     velocity = 0.0f;  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted velocity %s not found:%s\n",
-                            messageString.substr(charIndex, charIndex+5).c_str(), messageString.c_str());
+                            messageString.substr(charIndex, 5).c_str(), messageString.c_str());
                     return false;
                 }
                 charIndex += 5;  // skip over the velocity data
@@ -216,10 +216,10 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'D': {  // horizontal scrolling
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, charIndex+1).c_str(), "%d", (int*)&velocityIsHorizontal) != 1) {
+                if (sscanf(messageString.substr(charIndex, 1).c_str(), "%d", (int*)&velocityIsHorizontal) != 1) {
                     velocityIsHorizontal = true;  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted horizontal scroll %s not found:%s\n",
-                            messageString.substr(charIndex, charIndex+1).c_str(), messageString.c_str());
+                            messageString.substr(charIndex, 1).c_str(), messageString.c_str());
                     return false;
                 }
                 charIndex++;
@@ -227,10 +227,10 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'S': {  // scroll type
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, charIndex+1).c_str(), "%d", (int*)&velocityScrollType) != 1) {
+                if (sscanf(messageString.substr(charIndex, 1).c_str(), "%d", (int*)&velocityScrollType) != 1) {
                     velocityScrollType = SINGLE_ONOFF;  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted scroll type %s not found:%s\n",
-                            messageString.substr(charIndex, charIndex+1).c_str(), messageString.c_str());
+                            messageString.substr(charIndex, 1).c_str(), messageString.c_str());
                     return false;
                 }
                 charIndex++;
@@ -238,7 +238,7 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case '=': {  // text string
                 charIndex++;
-                text = messageString.substr(charIndex, messageString.length()-UPLC_FORMATTED_SUFFIX.length());   // remainder of string, except for suffix, is the message text
+                text = messageString.substr(charIndex, messageString.length()-charIndex-UPLC_FORMATTED_SUFFIX.length());   // remainder of string, except for suffix, is the message text
                 charIndex = messageString.length();
                 return true;   // done processing all characters
             }
