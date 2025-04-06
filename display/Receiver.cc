@@ -29,6 +29,8 @@ static auto LED_ERROR_MESSAGE_FAIL_EVENT = "DISP(F)";
 
 static auto CLEAR_DISPLAY_ON_UNRECOGNIZED_MESSAGE = true; 
 
+int Receiver::preferredCommandFormatTemplateIndex = 0; // default to first template, if any
+
 Receiver::Receiver(int aPort_number)  : port_number(aPort_number), listen_for_clients_sockfd(-1), 
                                         closingErrorMessage(""), 
                                         running_(false), pending_active_at_next_message(true), 
