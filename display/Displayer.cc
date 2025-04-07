@@ -200,7 +200,7 @@ void Displayer::iota() {
   const  rgb_matrix::Color MARK_IDLE_COLOR(255,0,0); // use an extreme color to avoid messing up pwmbits
   constexpr time_t SECONDS_BLANK_TO_DECLARE_IDLE = 5;
 
-  if (!currChangeOrderDone) {
+  if (!currChangeOrderDone || isContinuousScroll()) {
     // restart idle timer unless an "empty" message is in progress (still scrolling) on the display over multiple iota calls
     if (!currChangeOrder.orderDoneHasEmptyDisplay()) {  // non-empty message still in progress, so keep resetting the idle timer
       isIdle = false;
@@ -263,6 +263,7 @@ void Displayer::iota() {
             if ((scroll_direction < 0 && x + length < 0) ||
                (scroll_direction > 0 && x > canvas->width())) {
               x = currChangeOrder.getXOrigin() + ((scroll_direction > 0) ? -length : canvas->width());
+              if (!currChangeOrderDone) setChangeDone();  // completed at least one cycle of scrolling
             }
           }
           else {
@@ -270,6 +271,7 @@ void Displayer::iota() {
             if ((scroll_direction < 0 && y + currFont.baseline() < 0) ||
                (scroll_direction > 0 && y > canvas->height())) {
               y = currChangeOrder.getYOrigin() + ((scroll_direction > 0) ? -currFont.height() : canvas->height());
+              if (!currChangeOrderDone) setChangeDone();  // completed at least one cycle of scrolling
             }
           }
           break;
@@ -322,7 +324,8 @@ void Displayer::iota() {
       setChangeDone();
     }
   }
-  else {  // no active change order
+
+  if (currChangeOrderDone) {  // no active change order (although continuous scrolling may be ongoing)
     // if requested, and idled with blank display for length of time, mark dots on corners
     if (allowIdleMarkers
         && !isIdle

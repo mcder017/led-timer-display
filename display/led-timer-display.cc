@@ -343,16 +343,20 @@ int main(int argc, char *argv[]) {
 
     updateReportConnections(myDisplayer, myReceiver, smallFontVerticalScrollTemplate, currIsNoActiveSource);
 
-    // if new valid message,  decide what to display
-    if (myReceiver.isPendingMessage()) {
-      const Receiver::RawMessage message = myReceiver.popPendingMessage();
-      myFormatter.handleMessage(message);
+    // when previous message has been shown (possibly restarted scrolling if continuous), check for new messages
+    if (myDisplayer.isChangeOrderDone()) {   
+
+      // if new valid message,  decide what to display
+      if (myReceiver.isPendingMessage()) {
+        const Receiver::RawMessage message = myReceiver.popPendingMessage();
+        myFormatter.handleMessage(message);
+      }
     }
 
     myDisplayer.iota();
 
     // when no messages can be received, and there is nothing to scroll, delay quite a while before looping
-    if (!myReceiver.isRunning() && !myDisplayer.getChangeOrder().isScrolling() && !myDisplayer.isChangeOrderDone()) {
+    if (!myReceiver.isRunning() && !myDisplayer.isContinuousScroll() && myDisplayer.isChangeOrderDone()) {
       do_pause();
     }
     else {
