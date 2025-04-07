@@ -92,15 +92,15 @@ public:
 
      std::string getLocalAddresses();
 
-     void reportDisplayed(RawMessage& aMessage) {
+     void reportDisplayed(const RawMessage& aMessage) {
           // public methods must only lock one flag at a time
-          {
+          {    // encapsulate lock
                rgb_matrix::MutexLock l(&mutex_report_flag);
                if (!is_any_reporting_requested) {
                     return;  // no clients are requesting a report
                }
           }
-          {
+          {    // encapsulate lock
                rgb_matrix::MutexLock l(&mutex_descriptors);
                internalReportDisplayed(aMessage);  
           }
@@ -212,7 +212,7 @@ private:
      void internalSetActiveClient(std::string aClientName);    
      void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
      void transmitClients(DescriptorInfo& aDescriptorRef);
-     void internalReportDisplayed(RawMessage& aMessage);    
+     void internalReportDisplayed(const RawMessage& aMessage);    
      void updateIsAnyReportingRequested();        // also locks mutex_report_flag internally; call when adding client, removing client, or changing report flag for client
      void showClients();                          // also locks on mutex_msg_queue internally
 
