@@ -152,8 +152,8 @@ private:
           std::deque<std::string> pending_writes; // list of messages (such as command responses) to be sent to this source
           bool do_display_report; // if true, send copy of all displayed messages (at external reports, not when queued messages done internally) to this source
 
-          DescriptorInfo() : tcp_unprocessed(), inactive_message_queue(), source_name_unique() {}
-          DescriptorInfo(std::string aSourceAddressName) : tcp_unprocessed(), inactive_message_queue(), source_name_unique(std::move(aSourceAddressName)) {}
+          DescriptorInfo() : tcp_unprocessed(), inactive_message_queue(), source_name_unique(), pending_writes(), do_display_report(false) {}
+          DescriptorInfo(std::string aSourceAddressName) : tcp_unprocessed(), inactive_message_queue(), source_name_unique(std::move(aSourceAddressName)), pending_writes(), do_display_report(false) {}
           DescriptorInfo(const DescriptorInfo& other) = default; // copy constructor
      };
      static const int MAX_OPEN_SOCKETS = 20;

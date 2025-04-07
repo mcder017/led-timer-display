@@ -550,22 +550,23 @@ void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
 }
 
 void Receiver::internalReportDisplayed(const RawMessage& aMessage) {
+    std::string report_message = UPLC_ECHO_PREFIX + aMessage.data;  
+    if (report_message.at(report_message.length()-1) != PROTOCOL_END_OF_LINE) {
+        report_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
+    }
+
     for (int i = 0; i < num_socket_descriptors; i++) {
          if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
               continue;  // skip port listener
          }
-         else if (descriptor_support_data[i].do_display_report) {          
-            std::string report_message = UPLC_ECHO_PREFIX + aMessage.data;  
-            if (report_message.at(report_message.length()-1) != PROTOCOL_END_OF_LINE) {
-                report_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
-            }
+         if (descriptor_support_data[i].do_display_report) {          
             descriptor_support_data[i].pending_writes.push_back(report_message);  
          }
     }
 }
 
 void Receiver::updateIsAnyReportingRequested() {
-    bool result = false;
+    int report_count = 0;
 
     // check if any of the descriptors are requesting a report
     for (int i = 0; i < num_socket_descriptors; i++) {
@@ -573,13 +574,17 @@ void Receiver::updateIsAnyReportingRequested() {
             continue;  // skip port listener
         }
         else if (descriptor_support_data[i].do_display_report) {          
-            result = true;
-            break;
+            report_count++;
+            //break;
         }
     }
 
     rgb_matrix::MutexLock l(&mutex_report_flag);
-    is_any_reporting_requested = result;
+    is_any_reporting_requested = report_count != 0;
+    if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Reporting set for %d clients\n", report_count);        
+   }
 }
 
 void Receiver::Run() {
