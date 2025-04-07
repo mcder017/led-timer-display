@@ -481,27 +481,29 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
             if (isatty(STDIN_FILENO)) {
                 // Only give a message if we are interactive. If connected via pipe, be quiet
                 printf("Changing active display source to %s, internal array index %d to %d\n", target_client_name.c_str(), old_active_index, new_active_index);
-            }                    
+            }                                
 
             // move any active queue to old source inactive status
-            if (active_message_queue.size() > 0) {
-                if (isatty(STDIN_FILENO)) {
-                    // Only give a message if we are interactive. If connected via pipe, be quiet
-                    printf("De-queueing %ld old active messages...\n", active_message_queue.size());
-                }                    
+            if (old_active_index >= 0) {    // avoid segmentation fault... there might not be a previous active index
+                if (active_message_queue.size() > 0) {
+                    if (isatty(STDIN_FILENO)) {
+                        // Only give a message if we are interactive. If connected via pipe, be quiet
+                        printf("De-queueing %ld old active messages...\n", active_message_queue.size());
+                    }                    
 
-                while (active_message_queue.size() > 0) {
-                    descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_message_queue.front());
-                    active_message_queue.pop_front();
+                    while (active_message_queue.size() > 0) {
+                        descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_message_queue.front());
+                        active_message_queue.pop_front();
+                    }
                 }
-            }
-            else {
-                // no pending messages, so store the last (currently displayed) message
-                if (isatty(STDIN_FILENO)) {
-                    // Only give a message if we are interactive. If connected via pipe, be quiet
-                    printf("No messages pending for old source, storing last message...\n");
+                else {
+                    // no pending messages, so store the last (currently displayed) message
+                    if (isatty(STDIN_FILENO)) {
+                        // Only give a message if we are interactive. If connected via pipe, be quiet
+                        printf("No messages pending for old source, storing last message...\n");
+                    }
+                    descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_client_last_message);
                 }
-                descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_client_last_message);
             }
 
             // whenever we change source, we (at least momentarily) clear the display
@@ -601,10 +603,14 @@ void Receiver::Run() {
                             if (reading_ok) {
                                 queueCompletedLines(descriptor_support_data[i]);
 
-                                if (pending_active_at_next_message && descriptor_support_data[i].inactive_message_queue.size() > 0) {
+                                if (pending_active_at_next_message 
+                                    && descriptor_support_data[i].inactive_message_queue.size() > 0
+                                    && (descriptor_support_data[i].inactive_message_queue.front().protocol != UPLC_COMMAND
+                                        || descriptor_support_data[i].inactive_message_queue.back().protocol != UPLC_COMMAND)) {
+
                                     if (isatty(STDIN_FILENO)) {
                                         // Only give a message if we are interactive. If connected via pipe, be quiet
-                                        printf("Assigning active display based on first message, internal index %d\n", i);
+                                        printf("Assigning active display by first displayable message, internal index %d\n", i);
                                     }                    
                                     active_display_sockfd = socket_descriptors[i].fd;  // set active display to this source
                                     pending_active_at_next_message = false;  // only set active display once, at first message; not automatically at every disconnect of active display
