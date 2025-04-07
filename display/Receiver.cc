@@ -835,8 +835,8 @@ void Receiver::showClients() {
 }
 
 void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
-    char clientCountBuffer[10];
-    sprintf(clientCountBuffer, "%2d", num_socket_descriptors-1);  // -1 as port listener is not a client
+    char clientCountBuffer[15];
+    sprintf(clientCountBuffer, "%02d", num_socket_descriptors-1);  // -1 as port listener is not a client
     std::string response = clientCountBuffer;
 
     for (int i=0; i < num_socket_descriptors; i++) {
