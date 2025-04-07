@@ -503,6 +503,10 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                 descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_client_last_message);
             }
 
+            // whenever we change source, we (at least momentarily) clear the display
+            // for example so that downstream code (Formatter) does not discard messages as duplicates
+            active_message_queue.push_back(RawMessage(SIMPLE_TEXT, ""));  // clear display
+
             // move any new source inactive queue to active status
             if (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {
                 if (isatty(STDIN_FILENO)) {
@@ -514,14 +518,6 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                     active_message_queue.push_back(descriptor_support_data[new_active_index].inactive_message_queue.front());
                     descriptor_support_data[new_active_index].inactive_message_queue.pop_front();
                 }
-            }
-            else {
-                // if no messages in inactive queue, clear the display
-                if (isatty(STDIN_FILENO)) {
-                    // Only give a message if we are interactive. If connected via pipe, be quiet
-                    printf("No messages pending for new source, clearing display...\n");
-                }                    
-                active_message_queue.push_back(RawMessage(SIMPLE_TEXT, ""));  // clear display
             }
 
             // update socket reference
