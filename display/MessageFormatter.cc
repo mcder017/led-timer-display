@@ -12,7 +12,7 @@ static bool NO_VELOCITY_FOR_FIXED_TIMES = true;
 
 MessageFormatter::MessageFormatter(Displayer& aDisplayer, TextChangeOrder aOrderFormat)
       : myDisplayer(aDisplayer), defaultOrderFormat(aOrderFormat),
-        observedEventTypeChar(false), nextIntermediateLocationID(0) {
+        observedAlgeEventTypeChar(false), nextAlgeIntermediateLocationID(0) {
 
     // no further initialization needed
 };
@@ -25,10 +25,14 @@ void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
 
     case Receiver::Protocol::SIMPLE_TEXT:
       handleSimpleTextMessage(message);
+      observedAlgeEventTypeChar = false;  // reset state variable
+      nextAlgeIntermediateLocationID = 0;  // reset state variable
       break;
 
     case Receiver::Protocol::UPLC_FORMATTED_TEXT:
       handleUPLCFormattedMessage(message);
+      observedAlgeEventTypeChar = false;  // reset state variable
+      nextAlgeIntermediateLocationID = 0;  // reset state variable
       break;
 
     case Receiver::Protocol::UPLC_COMMAND:
@@ -110,9 +114,9 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   // and since the RTPro stops sending any intermediate time snapshots if any sequential intermediate time point (1,2,3,...) is skipped during a run,
   // we maintain a state variable to track what intermediate we are on, across messages received.
   // AND rather than look for "our" board ID, we use the receipt of the full message meant for the "first" board to distinguish if we are on a new intermediate.
-  if (!observedEventTypeChar) {
+  if (!observedAlgeEventTypeChar) {
     if (!isBoardIdentifier && eventTypeChar != ' ') {
-      observedEventTypeChar = true;
+      observedAlgeEventTypeChar = true;
     }
   }
   else {
@@ -121,24 +125,24 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
 
     if (isBoardIdentifier && isStillRunningTime) {   // seeing board identifiers and not a total/run/split time, so not a duplicate of a recent nicely formatted intermediate message
       // reset flag, to see if still receiving location data in upcoming messages
-      observedEventTypeChar = false;  
+      observedAlgeEventTypeChar = false;  
     }
   }
 
-  if (observedEventTypeChar) {
+  if (observedAlgeEventTypeChar) {
     if (isIntermediateOne) {
       // reset the intermediate location ID
-      nextIntermediateLocationID = 1;
+      nextAlgeIntermediateLocationID = 1;
     }
     else if (isIntermediateTwoPlus && !isBoardIdentifier) { // new intermediate point (e.g. speed point),  not a board-ID-variation copy of a message already received
       // increment the intermediate location ID
       // (relies on the behavior that the RTPro will not send a message with a new intermediate location ID if the previous one was skipped, 
       //  so each run this state variable will reset to value 1, above)
-      nextIntermediateLocationID++;
+      nextAlgeIntermediateLocationID++;
     }
     else if (!isBoardIdentifier && (isRunTime || isTotalTimeOrUnknown) && eventTypeChar != ' ') {
       // in an abundance of caution, reset the intermediate location ID if end of run known due to specific event type code flags
-      nextIntermediateLocationID = 1;
+      nextAlgeIntermediateLocationID = 1;
     }
   }
   // ======
@@ -196,7 +200,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
                              timeField
                              //+ (rankField.empty() ? "" : "[" + rankField + "]")
-                             + " S"+std::to_string(nextIntermediateLocationID);
+                             + " S"+std::to_string(nextAlgeIntermediateLocationID);
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
 
@@ -222,7 +226,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     // useful display (like the split location) disappearing instantly when the 2nd message (with board ID but no detail data) arrives.
     //
     // The hedge on this approach is that if we are only seeing messages with a board ID, then we don't ignore.
-    if (!isBoardIdentifier || !observedEventTypeChar) {
+    if (!isBoardIdentifier || !observedAlgeEventTypeChar) {
       myDisplayer.startChangeOrder(newOrder);
     }
     else {

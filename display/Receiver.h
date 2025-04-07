@@ -114,6 +114,12 @@ protected:
      inline void lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
           rgb_matrix::MutexLock l(&mutex_msg_queue);
           active_message_queue.push_back(aMessage);
+          if (isatty(STDIN_FILENO)) {
+               // Only give a message if we are interactive. If connected via pipe, be quiet
+               if (active_message_queue.size() > 1) {
+                    printf("Active queue now %ld\n", active_message_queue.size());
+               }
+          }
      }
 
      inline void lockedStop() {

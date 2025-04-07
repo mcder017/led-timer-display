@@ -22,8 +22,8 @@ private:
   Displayer& myDisplayer;
   TextChangeOrder defaultOrderFormat;
 
-  bool observedEventTypeChar;  // true if have seen intermediate location specifications and hence we'll ignore messages without them as copies
-  int nextIntermediateLocationID;  // next intermediate location to display if multiple messages received
+  bool observedAlgeEventTypeChar;  // state information: true if have most recently seen intermediate location specifications and hence we'll ignore messages without them as copies
+  int nextAlgeIntermediateLocationID;  // state information: next intermediate location to display if multiple messages received
 
   void handleAlgeMessage(const Receiver::RawMessage& message);
   void handleSimpleTextMessage(const Receiver::RawMessage& message);
