@@ -189,8 +189,22 @@ bool MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     timeField = timeBuffer;
   }
 
-  // assemble the message to display
+  // The RTPro sends all board messages to all boards IDs,
+  // not just individual messages to each board's IP.  The first message (with no board ID)
+  // contains extra information (such as intermediate location) of which we are now making active use.
+  //
+  // Therefore, we are now discarding (ignoring) any messages with a board ID.  This avoids having
+  // useful display (like the split location) disappearing instantly when the 2nd message (with board ID but no detail data) arrives.
+  //
+  // The hedge on this approach is that if we are only seeing messages with a board ID, then we don't ignore.
+  if (isBoardIdentifier && observedAlgeEventTypeChar) {
+    if (isatty(STDIN_FILENO)) {
+      printf("Ignoring dupl msg\n");
+    }
+    return false;
+  }
 
+  // assemble the message to display
   if (isBlankMessage) {
     TextChangeOrder newOrder = buildDefaultChangeOrder(" ");  // clear display
     myDisplayer.startChangeOrder(newOrder);
@@ -211,7 +225,7 @@ bool MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   else if (isStillRunningTime) {
     const std::string text = "[ " + timeField + " ]";
     myDisplayer.startChangeOrder(buildDefaultChangeOrder(text.c_str()));
-  }
+}
   else if (isTotalTimeOrUnknown) {
     // combine bib, time, and rank if provided
     const std::string text = //(bibField.empty() ? "" : bibField + "=") +
@@ -220,23 +234,7 @@ bool MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     TextChangeOrder newOrder = buildDefaultChangeOrder(text.c_str());
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
 
-    // The RTPro sends all board messages to all boards IDs,
-    // not just individual messages to each board's IP.  The first message (with no board ID)
-    // contains extra information (such as intermediate location) of which we are now making active use.
-    //
-    // Therefore, we are now discarding (ignoring) any messages with a board ID.  This avoids having
-    // useful display (like the split location) disappearing instantly when the 2nd message (with board ID but no detail data) arrives.
-    //
-    // The hedge on this approach is that if we are only seeing messages with a board ID, then we don't ignore.
-    if (!isBoardIdentifier || !observedAlgeEventTypeChar) {
-      myDisplayer.startChangeOrder(newOrder);
-    }
-    else {
-      if (isatty(STDIN_FILENO)) {
-        printf("Ignoring dupl msg\n");
-      }
-      return false;
-    }
+    myDisplayer.startChangeOrder(newOrder);
   }
   else if (isRunTime) { // if run2 or later, RTPro sends total time, then run time, then total time again (with delays in between).
     // combine bib, time, and rank if provided
