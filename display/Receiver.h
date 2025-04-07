@@ -107,6 +107,9 @@ protected:
      static constexpr char UPLC_COMMAND_ECHO_MESSAGES = '&';
      static constexpr char UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT = '0';
 
+     inline static const std::string UPLC_TXMT_INACTIVE_CLIENT_PREFIX = "~~";
+     inline static const std::string UPLC_TXMT_ACTIVE_CLIENT_PREFIX = "~~*!";
+
      inline bool lockedTestRunning() {
           rgb_matrix::MutexLock l(&mutex_is_running);
           return running_;
@@ -124,6 +127,8 @@ private:
           std::string tcp_unprocessed;  // empty buffer to accumulate unprocessed messages separated by newlines
           std::deque<RawMessage> inactive_message_queue; // queue of messages received from socket and not yet deleted nor put in active Receiver queue
           std::string source_name_unique;  // address of source, for descriptor selection lookup
+          std::deque<std::string> pending_writes; // list of messages (such as command responses) to be sent to this source
+          bool do_display_report; // if true, send copy of all displayed messages (at external reports, not when queued messages done internally) to this source
 
           DescriptorInfo() : tcp_unprocessed(), inactive_message_queue(), source_name_unique() {}
           DescriptorInfo(std::string aSourceAddressName) : tcp_unprocessed(), inactive_message_queue(), source_name_unique(std::move(aSourceAddressName)) {}
@@ -179,6 +184,7 @@ private:
      void compressSockets();
      void internalSetActiveClient(std::string aClientName);    
      void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
+     void transmitClients(DescriptorInfo& aDescriptorRef);
      void showClients();                          // also locks on mutex_msg_queue internally
 
      // no lock needed, only used by this object's Run thread

@@ -549,6 +549,8 @@ void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
 
 
 void Receiver::Run() {
+    signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE signal (if write to a stream whose reading end closed), so that we can handle closed connections gracefully
+
     const short FLAG_POLLIN = POLLIN;
     const short FLAG_SINGLE_CLOSE = POLLPRI | POLLRDHUP | POLLHUP;  // flags for which we will close single connection
     const short FLAG_DO_STOP = ~(FLAG_POLLIN | FLAG_SINGLE_CLOSE);  // any other flag treated as error for which we will stop the receiver completely
@@ -664,6 +666,29 @@ void Receiver::Run() {
                     compressSockets();  // remove closed sockets from array
                     needs_compress = false;
                 }
+
+                // now look for any socket writes that have been requested on remaining connections, and send them
+                for (int wIndex = 0; wIndex < num_socket_descriptors; wIndex++) {
+                    if (socket_descriptors[wIndex].fd == listen_for_clients_sockfd) {
+                        continue;  // skip the listening socket
+                    }
+
+                    // attempt to send all pending writes to this socket, but discard if any errors occur
+                    while (descriptor_support_data[wIndex].pending_writes.size() > 0) {
+                        const int result_flag = send(socket_descriptors[wIndex].fd, descriptor_support_data[wIndex].pending_writes.front().c_str(), descriptor_support_data[wIndex].pending_writes.front().length(), MSG_DONTWAIT);
+                        if (result_flag < 0) {
+                            fprintf(stderr, "send() failed for %s, errno=%d\n", descriptor_support_data[wIndex].source_name_unique.c_str(), errno);
+                            descriptor_support_data[wIndex].pending_writes.clear();  // clear the pending write buffer
+                        }
+                        else {
+                            if (isatty(STDIN_FILENO)) {
+                                // Only give a message if we are interactive. If connected via pipe, be quiet
+                                printf("Sent to %s: %s\n", descriptor_support_data[wIndex].source_name_unique.c_str(), descriptor_support_data[wIndex].pending_writes.front().c_str());
+                            }    
+                            descriptor_support_data[wIndex].pending_writes.pop_front();                
+                        }
+                    }
+                }
             }
         }
     }
@@ -775,7 +800,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
 
         case UPLC_COMMAND_TRANSMIT_CLIENTS:
-            // TODO
+            transmitClients(aDescriptorRef);
             break;
 
         case UPLC_COMMAND_ECHO_MESSAGES:
@@ -806,6 +831,29 @@ void Receiver::showClients() {
         RawMessage clientInfoMessage(UPLC_FORMATTED_TEXT, clientDescription.toUPLCFormattedMessage());
         lockedAppendMessageActiveQueue(clientInfoMessage);
     }
+}
+
+void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
+    char clientCountBuffer[10];
+    sprintf(clientCountBuffer, "%2d", num_socket_descriptors-1);  // -1 as port listener is not a client
+    std::string response = clientCountBuffer;
+
+    for (int i=0; i < num_socket_descriptors; i++) {
+        if (socket_descriptors[i].fd == listen_for_clients_sockfd) { 
+            continue;  // skip port listener
+        }
+
+        if (active_display_sockfd >= 0 && socket_descriptors[i].fd == active_display_sockfd) {
+            response += UPLC_TXMT_ACTIVE_CLIENT_PREFIX;
+        }
+        else {
+            response += UPLC_TXMT_INACTIVE_CLIENT_PREFIX;
+        }
+
+        response += descriptor_support_data[i].source_name_unique;
+        response += PROTOCOL_END_OF_LINE;
+    }
+    aDescriptorRef.pending_writes.push_back(response);  // queue for sending to this client
 }
 
 void Receiver::compressSockets() {
