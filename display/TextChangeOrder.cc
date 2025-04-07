@@ -183,26 +183,34 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'F': {  // foreground color
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, 2).c_str(), "%x", &foregroundColor.r) != 1
-                    || sscanf(messageString.substr(charIndex+2, 2).c_str(), "%x", &foregroundColor.g) != 1
-                    || sscanf(messageString.substr(charIndex+4, 2).c_str(), "%x", &foregroundColor.b) != 1) {
+                int fr,fg,fb;
+                if (sscanf(messageString.substr(charIndex, 2).c_str(), "%x", &fr) != 1
+                    || sscanf(messageString.substr(charIndex+2, 2).c_str(), "%x", &fg) != 1
+                    || sscanf(messageString.substr(charIndex+4, 2).c_str(), "%x", &fb) != 1) {
                     foregroundColor = getDefaultForegroundColor();  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted foreground color %s not found:%s\n",
                             messageString.substr(charIndex, 6).c_str(), messageString.c_str());
                     return false;
+                }
+                else {
+                    foregroundColor = rgb_matrix::Color((uint8_t)fr,(uint8_t)fg,(uint8_t)fb);  // set color
                 }
                 charIndex += 6;  // skip over the color codes
                 break;
             }
             case 'B': {  // background color
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, 2).c_str(), "%x", &backgroundColor.r) != 1
-                    || sscanf(messageString.substr(charIndex+2, 2).c_str(), "%x", &backgroundColor.g) != 1
-                    || sscanf(messageString.substr(charIndex+4, 2).c_str(), "%x", &backgroundColor.b) != 1) {
+                int br,bg,bb;
+                if (sscanf(messageString.substr(charIndex, 2).c_str(), "%x", &br) != 1
+                    || sscanf(messageString.substr(charIndex+2, 2).c_str(), "%x", &bg) != 1
+                    || sscanf(messageString.substr(charIndex+4, 2).c_str(), "%x", &bb) != 1) {
                     backgroundColor = getDefaultBackgroundColor();  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted background color %s not found:%s\n",
                             messageString.substr(charIndex, 6).c_str(), messageString.c_str());
                     return false;
+                }
+                else {
+                    backgroundColor = rgb_matrix::Color((uint8_t)br,(uint8_t)bg,(uint8_t)bb);  // set color
                 }
                 charIndex += 6;  // skip over the color codes
                 break;
