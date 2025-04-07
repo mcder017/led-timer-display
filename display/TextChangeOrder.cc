@@ -158,7 +158,7 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
 
     int charIndex = UPLC_FORMATTED_PREFIX.length();
     while ((int)messageString.length() > charIndex) {
-        const char c = messageString.at(charIndex);
+        const char c = toupper(messageString.at(charIndex));
         switch (c) {
             case '!': {  // font prefix
                 charIndex++;
@@ -224,6 +224,28 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
                     return false;
                 }
                 charIndex += 5;  // skip over the velocity data
+                break;
+            }
+            case 'X': {  // x origin, 2 digits with leading sign character
+                charIndex++;
+                if (sscanf(messageString.substr(charIndex, 3).c_str(), "%d", &x_origin) != 1) {
+                    x_origin = getXOriginDefault();  // reset to default if error
+                    fprintf(stderr, "At conversion, UPLC formatted x origin %s not accepted:%s\n",
+                            messageString.substr(charIndex, 3).c_str(), messageString.c_str());
+                    return false;
+                }
+                charIndex += 3;  // skip over the origin data
+                break;
+            }
+            case 'Y': {  // y origin, 2 digits with leading sign character
+                charIndex++;
+                if (sscanf(messageString.substr(charIndex, 3).c_str(), "%d", &y_origin) != 1) {
+                    y_origin = getYOriginDefault();  // reset to default if error
+                    fprintf(stderr, "At conversion, UPLC formatted y origin %s not accepted:%s\n",
+                            messageString.substr(charIndex, 3).c_str(), messageString.c_str());
+                    return false;
+                }
+                charIndex += 3;  // skip over the origin data
                 break;
             }
             case 'D': {  // horizontal scrolling
