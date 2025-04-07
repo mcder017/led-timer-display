@@ -684,7 +684,7 @@ void Receiver::Run() {
                         else {
                             if (isatty(STDIN_FILENO)) {
                                 // Only give a message if we are interactive. If connected via pipe, be quiet
-                                printf("Sent to %s: %s\n", descriptor_support_data[wIndex].source_name_unique.c_str(), descriptor_support_data[wIndex].pending_writes.front().c_str());
+                                printf("Sent to %s:\n%s", descriptor_support_data[wIndex].source_name_unique.c_str(), descriptor_support_data[wIndex].pending_writes.front().c_str());
                             }    
                             descriptor_support_data[wIndex].pending_writes.pop_front();                
                         }
@@ -852,8 +852,8 @@ void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
         }
 
         response += descriptor_support_data[i].source_name_unique;
-        response += PROTOCOL_END_OF_LINE;
     }
+    response += PROTOCOL_END_OF_LINE;
     aDescriptorRef.pending_writes.push_back(response);  // queue for sending to this client
 }
 
