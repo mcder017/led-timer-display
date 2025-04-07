@@ -349,8 +349,10 @@ int main(int argc, char *argv[]) {
       // if new valid message,  decide what to display
       if (myReceiver.isPendingMessage()) {
         const Receiver::RawMessage message = myReceiver.popPendingMessage();
-        myFormatter.handleMessage(message);
-        myReceiver.reportDisplayed(message);  
+        const bool new_display = myFormatter.handleMessage(message);
+        if (new_display) {
+          myReceiver.reportDisplayed(message);  
+        }
       }
     }
 

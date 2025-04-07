@@ -17,22 +17,22 @@ MessageFormatter::MessageFormatter(Displayer& aDisplayer, TextChangeOrder aOrder
     // no further initialization needed
 };
 
-void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
+bool MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
   switch (message.protocol) {
     case Receiver::Protocol::ALGE_DLINE:
-      handleAlgeMessage(message);
+      return handleAlgeMessage(message);
       break;
 
     case Receiver::Protocol::SIMPLE_TEXT:
-      handleSimpleTextMessage(message);
       observedAlgeEventTypeChar = false;  // reset state variable
       nextAlgeIntermediateLocationID = 0;  // reset state variable
+      return handleSimpleTextMessage(message);
       break;
 
     case Receiver::Protocol::UPLC_FORMATTED_TEXT:
-      handleUPLCFormattedMessage(message);
       observedAlgeEventTypeChar = false;  // reset state variable
       nextAlgeIntermediateLocationID = 0;  // reset state variable
+      return handleUPLCFormattedMessage(message);
       break;
 
     case Receiver::Protocol::UPLC_COMMAND:
@@ -43,22 +43,24 @@ void MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
     default:
       fprintf(stderr, "Unknown message passed for formatting(%d):%s\n", message.protocol, message.data.c_str());
   };
+  return false;
 }
 
-void MessageFormatter::handleUPLCFormattedMessage(const Receiver::RawMessage& message) {
+bool MessageFormatter::handleUPLCFormattedMessage(const Receiver::RawMessage& message) {
   TextChangeOrder newOrder(defaultOrderFormat);  // copy the default order format
   if (!newOrder.fromUPLCFormattedMessage(message.data)) {  // conversion failed
     fprintf(stderr, "UPLC format conversion failed on\n");
-    return;
+    return false;
   }
   myDisplayer.startChangeOrder(newOrder);  // start the new order
+  return true;
 }
 
-void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
+bool MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
   // message data includes eol, and may be all whitespace
   if (message.data.length() < 20) {
     fprintf(stderr, "Message too short\n");
-    return;
+    return false;
   }
 
   // parse fields from the message
@@ -233,6 +235,7 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
       if (isatty(STDIN_FILENO)) {
         printf("Ignoring dupl msg\n");
       }
+      return false;
     }
   }
   else if (isRunTime) { // if run2 or later, RTPro sends total time, then run time, then total time again (with delays in between).
@@ -254,13 +257,14 @@ void MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     if (NO_VELOCITY_FOR_FIXED_TIMES) newOrder.setVelocity(0);  // override velocity
     myDisplayer.startChangeOrder(newOrder);
   }
+  return true;
 }
 
-void MessageFormatter::handleSimpleTextMessage(const Receiver::RawMessage& message) {
+bool MessageFormatter::handleSimpleTextMessage(const Receiver::RawMessage& message) {
   // forward the message string directly to the display, using default entrance parameters
 
   myDisplayer.startChangeOrder(buildDefaultChangeOrder(message.data.c_str()));
-
+  return true;
 }
 
 TextChangeOrder MessageFormatter::buildDefaultChangeOrder(const char* text) const {

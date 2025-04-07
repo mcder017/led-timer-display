@@ -13,7 +13,7 @@ class MessageFormatter {
 public:
   MessageFormatter(Displayer& aDisplayer, TextChangeOrder aOrderFormat);
 
-  void handleMessage(const Receiver::RawMessage& message);
+  bool handleMessage(const Receiver::RawMessage& message);  // returns true if message forwarded for display (versus disregarded)
 
   static std::string trimWhitespace(const std::string& str,
                                     const std::string& whitespace = " \t");
@@ -25,9 +25,9 @@ private:
   bool observedAlgeEventTypeChar;  // state information: true if have most recently seen intermediate location specifications and hence we'll ignore messages without them as copies
   int nextAlgeIntermediateLocationID;  // state information: next intermediate location to display if multiple messages received
 
-  void handleAlgeMessage(const Receiver::RawMessage& message);
-  void handleSimpleTextMessage(const Receiver::RawMessage& message);
-  void handleUPLCFormattedMessage(const Receiver::RawMessage& message);
+  bool handleAlgeMessage(const Receiver::RawMessage& message);
+  bool handleSimpleTextMessage(const Receiver::RawMessage& message);
+  bool handleUPLCFormattedMessage(const Receiver::RawMessage& message);
   TextChangeOrder buildDefaultChangeOrder(const char* text) const;
 };
 
