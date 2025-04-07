@@ -325,8 +325,9 @@ int main(int argc, char *argv[]) {
   showLocalAddresses(myDisplayer, myReceiver, smallFontHorizontalScrollTemplate);
 
   // now show text from command line options
-  if (myFormatter.handleMessage(Receiver::RawMessage(Receiver::Protocol::SIMPLE_TEXT, line))) {
-    myReceiver.reportDisplayed(message);  
+  Receiver::RawMessage startup_message(Receiver::Protocol::SIMPLE_TEXT, line);
+  if (myFormatter.handleMessage(startup_message)) {
+    myReceiver.reportDisplayed(startup_message);  
   }
 
   signal(SIGTERM, InterruptHandler);
