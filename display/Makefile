@@ -24,13 +24,13 @@ $(RGB_LIBRARY): FORCE
 led-timer-display : $(OBJECTS)
 	$(CXX) -o $@ $(OBJECTS) $(LDFLAGS)
 
-led-timer-display.o : led-timer-display.cc
+led-timer-display.o : led-timer-display.cc MessageFormatter.h Displayer.h Receiver.h TextChangeOrder.h
 
-Displayer.o: Displayer.cc Displayer.h
+Displayer.o: Displayer.cc Displayer.h TextChangeOrder.h
 
-MessageFormatter.o: MessageFormatter.cc MessageFormatter.h Displayer.h Receiver.h
+MessageFormatter.o: MessageFormatter.cc MessageFormatter.h Displayer.h Receiver.h TextChangeOrder.h
 
-Receiver.o: Receiver.cc Receiver.h TextChangeOrder.h
+Receiver.o: Receiver.cc Receiver.h TextChangeOrder.h TextChangeOrder.h
 
 TextChangeOrder.o: TextChangeOrder.cc TextChangeOrder.h
 
