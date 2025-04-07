@@ -762,14 +762,16 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
 
         case UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT:
-            RawMessage clearMessage(SIMPLE_TEXT, "");
+            {   // scope for local variables
+                RawMessage clearMessage(SIMPLE_TEXT, "");
 
-            // copy to active queue
-            lockedAppendMessageActiveQueue(clearMessage);
+                // copy to active queue
+                lockedAppendMessageActiveQueue(clearMessage);
 
-            // always keep copy of last displayable (non-command) message from the active client
-            // for use in storing when the active client is switched, and later switched back
-            active_client_last_message = clearMessage;
+                // always keep copy of last displayable (non-command) message from the active client
+                // for use in storing when the active client is switched, and later switched back
+                active_client_last_message = clearMessage;
+            }
             break;
 
         case UPLC_COMMAND_TRANSMIT_CLIENTS:
@@ -779,7 +781,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
         case UPLC_COMMAND_ECHO_MESSAGES:
             // TODO set flags here.  Then in led-timer-display, call back to Receiver to new method with (simple text, or formatted) message when order created
             break;
-            
+
         default:
             fprintf(stderr, "UPLC command requested but command char %c not recognized:%s\n",
                 message_string.at(UPLC_COMMAND_PREFIX.length()), nonprintableToHexadecimal(message_string.c_str()).c_str());
