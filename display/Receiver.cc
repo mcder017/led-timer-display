@@ -550,8 +550,6 @@ void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
 }
 
 void Receiver::internalReportDisplayed(const RawMessage& aMessage) {
-    rgb_matrix::MutexLock l(&mutex_descriptors);
-
     for (int i = 0; i < num_socket_descriptors; i++) {
          if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
               continue;  // skip port listener
