@@ -737,7 +737,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
 
 void Receiver::showClients() {
     for (int i=0; i < num_socket_descriptors; i++) {
-        if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
+        if (socket_descriptors[i].fd == listen_for_clients_sockfd) { 
             continue;  // skip port listener
         }
 
