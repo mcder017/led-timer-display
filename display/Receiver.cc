@@ -536,7 +536,7 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
     }
 }
 
-void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage); {
+void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
     rgb_matrix::MutexLock l(&mutex_msg_queue);
     active_message_queue.push_back(aMessage);
     if (isatty(STDIN_FILENO)) {
