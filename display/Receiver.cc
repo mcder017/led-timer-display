@@ -519,6 +519,7 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
 
                 while (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {
                     active_message_queue.push_back(descriptor_support_data[new_active_index].inactive_message_queue.front());
+                    active_client_last_message = descriptor_support_data[new_active_index].inactive_message_queue.front();  // store last message for this source
                     descriptor_support_data[new_active_index].inactive_message_queue.pop_front();
                 }
             }
