@@ -144,7 +144,7 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
     if (currIsNoKnown) {
       if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Displaying disconnection markers%s\n", forceReport ? " (forced check)" : "");
+        printf("Displaying disconnection markers%s\n", (forceReport ? " (forced check)" : ""));
       }
     }
     myDisplayer.setMarkDisconnected(currIsNoKnown);  // if true, dots indicate known disconnected status
@@ -153,7 +153,7 @@ static void updateReportConnections(Displayer& myDisplayer, Receiver& myReceiver
     if (!currIsNoKnown) {
       if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Displaying active connection message\n", forceReport ? " (forced check)" : "");
+        printf("Displaying active connection message%s\n", (forceReport ? " (forced check)" : ""));
       }
       showNewConnection(myDisplayer, textTemplate);
     }
