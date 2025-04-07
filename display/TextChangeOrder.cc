@@ -221,7 +221,7 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
                     backgroundColor = rgb_matrix::Color((uint8_t)br,(uint8_t)bg,(uint8_t)bb);  // set color
                 }
                 charIndex += 6;  // skip over the color codes
-                break;
+                break; 
             }
             case 'V': {  // velocity
                 charIndex++;
