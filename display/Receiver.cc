@@ -684,7 +684,9 @@ void Receiver::Run() {
                         else {
                             if (isatty(STDIN_FILENO)) {
                                 // Only give a message if we are interactive. If connected via pipe, be quiet
-                                printf("Sent to %s:\n%s", descriptor_support_data[wIndex].source_name_unique.c_str(), descriptor_support_data[wIndex].pending_writes.front().c_str());
+                                printf("Sent to %s:%s\n", 
+                                    descriptor_support_data[wIndex].source_name_unique.c_str(), 
+                                    nonprintableToHexadecimal(descriptor_support_data[wIndex].pending_writes.front().c_str()).c_str());
                             }    
                             descriptor_support_data[wIndex].pending_writes.pop_front();                
                         }
