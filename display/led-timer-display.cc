@@ -350,6 +350,7 @@ int main(int argc, char *argv[]) {
       if (myReceiver.isPendingMessage()) {
         const Receiver::RawMessage message = myReceiver.popPendingMessage();
         myFormatter.handleMessage(message);
+        myReceiver.reportDisplayed(message);  
       }
     }
 

@@ -92,6 +92,25 @@ public:
 
      std::string getLocalAddresses();
 
+     void reportDisplayed(RawMessage& aMessage) {
+          // public methods must only lock one flag at a time
+          {
+               rgb_matrix::MutexLock l(&mutex_report_flag);
+               if (!is_any_reporting_requested) {
+                    return;  // no clients are requesting a report
+               }
+          }
+          {
+               rgb_matrix::MutexLock l(&mutex_descriptors);
+               internalReportDisplayed(aMessage);  
+          }
+     }
+
+     bool isAnyReportingRequested() {
+          rgb_matrix::MutexLock l(&mutex_report_flag);
+          return is_any_reporting_requested;
+     }
+
      static std::string nonprintableToHexadecimal(const char* str);
      static void setPreferredCommandFormatTemplate(int templateIndex);
 
@@ -107,8 +126,11 @@ protected:
      static constexpr char UPLC_COMMAND_ECHO_MESSAGES = '&';
      static constexpr char UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT = '0';
 
+     inline static const std::string UPLC_TXMT_PREFIX = "~~";
      inline static const std::string UPLC_TXMT_INACTIVE_CLIENT_PREFIX = "~~";
      inline static const std::string UPLC_TXMT_ACTIVE_CLIENT_PREFIX = "~~*!";
+
+     inline static const std::string UPLC_ECHO_PREFIX = "=";
 
      inline bool lockedTestRunning() {
           rgb_matrix::MutexLock l(&mutex_is_running);
@@ -151,6 +173,7 @@ private:
      rgb_matrix::Mutex mutex_msg_queue;
      rgb_matrix::Mutex mutex_is_running;
      rgb_matrix::Mutex mutex_descriptors;
+     rgb_matrix::Mutex mutex_report_flag;
 
      // use MutexLock on mutex_is_running to allow thread-safe read&write on this group
      bool running_;                          
@@ -165,6 +188,9 @@ private:
      int num_socket_descriptors;                            
      int active_display_sockfd;                   // entry in the socket_descriptors array for source being displayed on the LED board
      std::string pending_active_display_name;     // requested active display source, but not yet set
+
+     // use MutexLock on mutex_report_flag to allow thread-safe read&write on this group
+     bool is_any_reporting_requested; // if true, at least one client wants a copy of all displayed messages (at external reports, not when queued messages done internally)
 
      // locks on mutex_msg_queue AND on mutex_descriptors internally
      void doubleLockedChangeActiveDisplay(std::string target_client_name);
@@ -186,6 +212,8 @@ private:
      void internalSetActiveClient(std::string aClientName);    
      void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
      void transmitClients(DescriptorInfo& aDescriptorRef);
+     void internalReportDisplayed(RawMessage& aMessage);    
+     void updateIsAnyReportingRequested();        // also locks mutex_report_flag internally; call when adding client, removing client, or changing report flag for client
      void showClients();                          // also locks on mutex_msg_queue internally
 
      // no lock needed, only used by this object's Run thread

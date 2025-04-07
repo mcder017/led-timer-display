@@ -230,6 +230,7 @@ void Receiver::checkAndAcceptConnection() {
         }
 
     } while (new_socket_descriptor >= 0);
+    updateIsAnyReportingRequested();
 }
 
 bool Receiver::checkAndAppendData(int source_descriptor, std::string& unprocessed_buffer) {
@@ -548,6 +549,40 @@ void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
     }
 }
 
+void Receiver::internalReportDisplayed(RawMessage& aMessage) {
+    rgb_matrix::MutexLock l(&mutex_descriptors);
+
+    for (int i = 0; i < num_socket_descriptors; i++) {
+         if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
+              continue;  // skip port listener
+         }
+         else if (descriptor_support_data[i].do_display_report) {          
+            std::string report_message = UPLC_ECHO_PREFIX + aMessage.data;  
+            if (report_message.at(report_message.length()-1) != PROTOCOL_END_OF_LINE) {
+                report_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
+            }
+            descriptor_support_data[i].pending_writes.push_back(report_message);  
+         }
+    }
+}
+
+void Receiver::void updateIsAnyReportingRequested() {
+    bool result = false;
+
+    // check if any of the descriptors are requesting a report
+    for (int i = 0; i < num_socket_descriptors; i++) {
+        if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
+            continue;  // skip port listener
+        }
+        else if (descriptor_support_data[i].do_display_report) {          
+            result = true;
+            break;
+        }
+    }
+
+    rgb_matrix::MutexLock l(&mutex_report_flag);
+    is_any_reporting_requested = result;
+}
 
 void Receiver::Run() {
     signal(SIGPIPE, SIG_IGN);  // ignore SIGPIPE signal (if write to a stream whose reading end closed), so that we can handle closed connections gracefully
@@ -811,7 +846,21 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
 
         case UPLC_COMMAND_ECHO_MESSAGES:
-            // TODO set flags here.  Then in led-timer-display, call back to Receiver to new method with (simple text, or formatted) message when order created
+            // set flags here.  Then in led-timer-display, call back to Receiver to new method with (simple text, or formatted) message when order created
+            if (message_string.length() > UPLC_COMMAND_PREFIX.length+1) {
+                const std::string echo_message = message_string.substr(UPLC_COMMAND_PREFIX.length()+1, 1);  // +1 to skip command char
+                aDescriptorRef.do_display_report = echo_message.at(0) == '1';
+                updateIsAnyReportingRequested();
+
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("Display echo for %s set: %s\n", aDescriptorRef.source_name_unique.c_str(), aDescriptorRef.do_display_report ? "on" : "off");
+                }                    
+            }
+            else {
+                fprintf(stderr, "UPLC command requested echo but no enable/disable value found:%s\n",
+                    nonprintableToHexadecimal(message_string.c_str()).c_str());
+            }
             break;
 
         default:
@@ -843,7 +892,7 @@ void Receiver::showClients() {
 void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
     char clientCountBuffer[15];
     sprintf(clientCountBuffer, "%02d", num_socket_descriptors-1);  // -1 as port listener is not a client
-    std::string response = clientCountBuffer;
+    std::string response = UPLC_TXMT_PREFIX + clientCountBuffer;
 
     for (int i=0; i < num_socket_descriptors; i++) {
         if (socket_descriptors[i].fd == listen_for_clients_sockfd) { 
@@ -876,6 +925,7 @@ void Receiver::compressSockets() {
         num_socket_descriptors--;
       }
     }
+    updateIsAnyReportingRequested();
 
     if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
