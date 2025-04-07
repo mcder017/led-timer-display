@@ -181,12 +181,12 @@ private:
      void showClients();                          // also locks on mutex_msg_queue internally
 
      // no lock needed, only used by this object's Run thread
-     bool extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& aQueue);     
+     bool extractLineToQueue(DescriptorInfo& aDescriptorRef);     
      void parseLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
      bool parseAlgeLineToQueue(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
      bool parseUPLCCommand(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
      bool parseUPLCFormattedText(const char* single_line_buffer, std::deque<RawMessage>& aQueue);
-     void queueCompletedLines(std::string& aBuffer, std::deque<RawMessage>& aQueue);
+     void queueCompletedLines(DescriptorInfo& aDescriptorRef);
 
      // formatting, intended to be set up once during construction
      static int preferredCommandFormatTemplateIndex;

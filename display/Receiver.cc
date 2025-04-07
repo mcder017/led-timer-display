@@ -274,16 +274,16 @@ bool Receiver::checkAndAppendData(int source_descriptor, std::string& unprocesse
     } while (true);
 }
 
-bool Receiver::extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& aQueue) {
+bool Receiver::extractLineToQueue(DescriptorInfo& aDescriptorRef) {
     std::string::size_type eol_pos = 0;
-    eol_pos = aBuffer.find_first_of(PROTOCOL_END_OF_LINE);
+    eol_pos = aDescriptorRef.tcp_unprocessed.find_first_of(PROTOCOL_END_OF_LINE);
     const bool foundLine = eol_pos != std::string::npos;
     if (foundLine) {
         // found a line
         if (eol_pos >= PROTOCOL_MESSAGE_MAX_LENGTH) {
             fprintf(stderr, "Line too long(%lu > %d) in buffer:%s\n",
                 static_cast<unsigned long>(eol_pos), PROTOCOL_MESSAGE_MAX_LENGTH,
-                nonprintableToHexadecimal(aBuffer.c_str()).c_str());
+                nonprintableToHexadecimal(aDescriptorRef.tcp_unprocessed.c_str()).c_str());
             eol_pos = PROTOCOL_MESSAGE_MAX_LENGTH - 2;
         }
         const unsigned int char_in_line = eol_pos+1;  // less than TCP_BUFFER_SIZE since eol_pos max TCP_BUFFER_SIZE-2;
@@ -291,21 +291,22 @@ bool Receiver::extractLineToQueue(std::string& aBuffer, std::deque<RawMessage>& 
         // copy char from beginning of string, incl eol, and then
         // remove the message characters from the accumulation string
         char single_line_buffer[PROTOCOL_MESSAGE_MAX_LENGTH];
-        aBuffer.copy(single_line_buffer, char_in_line, 0);
-        aBuffer.erase(0, char_in_line);
+        aDescriptorRef.tcp_unprocessed.copy(single_line_buffer, char_in_line, 0);
+        aDescriptorRef.tcp_unprocessed.erase(0, char_in_line);
         // place end-of-string character; index is safe since eol_pos max TCP_BUFFER_SIZE-2, above
         single_line_buffer[char_in_line] = '\0';
 
         if (isatty(STDIN_FILENO)) {
             // Only give a message if we are interactive. If connected via pipe, be quiet
-            printf("Extracted line length %3lu, leaving %3lu unprocessed: %s\n",
-                   static_cast<unsigned long>(strlen(single_line_buffer)),
-                   static_cast<unsigned long>(strlen(aBuffer.c_str())),
-                   nonprintableToHexadecimal(single_line_buffer).c_str()
+            printf("%s: Extracted line length %3lu (leaving %3lu): %s\n",
+                    aDescriptorRef.source_name_unique.c_str(),
+                    static_cast<unsigned long>(strlen(single_line_buffer)),
+                    static_cast<unsigned long>(strlen(aDescriptorRef.tcp_unprocessed.c_str())),
+                    nonprintableToHexadecimal(single_line_buffer).c_str()
                    );
         }
 
-        parseLineToQueue(single_line_buffer, aQueue);
+        parseLineToQueue(single_line_buffer, aDescriptorRef.inactive_message_queue);
     }
 
     return foundLine;
@@ -598,7 +599,7 @@ void Receiver::Run() {
                             // data on existing connection
                             const bool reading_ok = checkAndAppendData(socket_descriptors[i].fd, descriptor_support_data[i].tcp_unprocessed);
                             if (reading_ok) {
-                                queueCompletedLines(descriptor_support_data[i].tcp_unprocessed, descriptor_support_data[i].inactive_message_queue);
+                                queueCompletedLines(descriptor_support_data[i]);
 
                                 if (pending_active_at_next_message && descriptor_support_data[i].inactive_message_queue.size() > 0) {
                                     if (isatty(STDIN_FILENO)) {
@@ -888,9 +889,9 @@ void Receiver::closeAllSockets() {
     num_socket_descriptors = 0;
 }
 
-void Receiver::queueCompletedLines(std::string& aBuffer, std::deque<RawMessage>& aQueue) {
+void Receiver::queueCompletedLines(DescriptorInfo& aDescriptorRef) {
     // look for end-of-protocol message char anywhere in the buffer, then pull and parse lines
-    while (extractLineToQueue(aBuffer, aQueue)) {
+    while (extractLineToQueue(aDescriptorRef)) {
         // keep extracting lines until none remain finished in the buffer
     }    
 }
