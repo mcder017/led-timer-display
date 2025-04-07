@@ -96,6 +96,8 @@ public:
           // public methods must only lock one flag at a time
           {    // encapsulate lock
                rgb_matrix::MutexLock l(&mutex_report_flag);
+               reported_displayed_last_message = aMessage;  // store for future use with clients who request reports
+
                if (!is_any_reporting_requested) {
                     return;  // no clients are requesting a report
                }
@@ -191,6 +193,7 @@ private:
 
      // use MutexLock on mutex_report_flag to allow thread-safe read&write on this group
      bool is_any_reporting_requested; // if true, at least one client wants a copy of all displayed messages (at external reports, not when queued messages done internally)
+     RawMessage reported_displayed_last_message;  // last message reported (from external) as displayed
 
      // locks on mutex_msg_queue AND on mutex_descriptors internally
      void doubleLockedChangeActiveDisplay(std::string target_client_name);
