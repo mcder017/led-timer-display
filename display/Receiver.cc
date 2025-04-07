@@ -494,6 +494,14 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                     active_message_queue.pop_front();
                 }
             }
+            else {
+                // no pending messages, so store the last (currently displayed) message
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("No messages pending for old source, storing last message...\n");
+                }
+                descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_client_last_message);
+            }
 
             // move any new source inactive queue to active status
             if (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {
@@ -684,13 +692,14 @@ void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveS
         }
 
         // for sources that are not being displayed,
-        // shrink queue to only retain most recent display message
+        // shrink queue to only retain most recent displayable message
+        // which is useful when the active client is switched to this source
         while (aDescriptorRef.inactive_message_queue.size() > 1) {    
             aDescriptorRef.inactive_message_queue.pop_front();
         }
     }
     else {
-        // move any inactive queued messages to active queue, intercepting any UPLC_COMMAND messages to be handled here
+        // move any queued messages for this client to active queue, intercepting any UPLC_COMMAND messages to be handled here
         while (aDescriptorRef.inactive_message_queue.size() > 0) {
             if (aDescriptorRef.inactive_message_queue.front().protocol == UPLC_COMMAND) {
                 if (isatty(STDIN_FILENO)) {
@@ -704,6 +713,10 @@ void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveS
             else {
                 // copy to active queue
                 lockedAppendMessageActiveQueue(aDescriptorRef.inactive_message_queue.front());
+
+                // always keep copy of last displayable (non-command) message from the active client
+                // for use in storing when the active client is switched, and later switched back
+                active_client_last_message = aDescriptorRef.inactive_message_queue.front();
             }
             // remove from inactive queue
             aDescriptorRef.inactive_message_queue.pop_front();
