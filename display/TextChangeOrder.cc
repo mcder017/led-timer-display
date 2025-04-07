@@ -183,7 +183,9 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'F': {  // foreground color
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, 6).c_str(), "%hhu%hhu%hhu", &foregroundColor.r, &foregroundColor.g, &foregroundColor.b) != 3) {
+                if (sscanf(messageString.substr(charIndex, 2).c_str(), "%x", &foregroundColor.r) != 1
+                    || sscanf(messageString.substr(charIndex+2, 2).c_str(), "%x", &foregroundColor.g) != 1
+                    || sscanf(messageString.substr(charIndex+4, 2).c_str(), "%x", &foregroundColor.b) != 1) {
                     foregroundColor = getDefaultForegroundColor();  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted foreground color %s not found:%s\n",
                             messageString.substr(charIndex, 6).c_str(), messageString.c_str());
@@ -194,7 +196,9 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
             }
             case 'B': {  // background color
                 charIndex++;
-                if (sscanf(messageString.substr(charIndex, 6).c_str(), "%hhu%hhu%hhu", &backgroundColor.r, &backgroundColor.g, &backgroundColor.b) != 3) {
+                if (sscanf(messageString.substr(charIndex, 2).c_str(), "%x", &backgroundColor.r) != 1
+                    || sscanf(messageString.substr(charIndex+2, 2).c_str(), "%x", &backgroundColor.g) != 1
+                    || sscanf(messageString.substr(charIndex+4, 2).c_str(), "%x", &backgroundColor.b) != 1) {
                     backgroundColor = getDefaultBackgroundColor();  // reset to default if error
                     fprintf(stderr, "At conversion, UPLC formatted background color %s not found:%s\n",
                             messageString.substr(charIndex, 6).c_str(), messageString.c_str());
