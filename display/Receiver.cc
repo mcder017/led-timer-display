@@ -15,6 +15,7 @@
 #include <unistd.h>  // for io on linux, also option parsing; sleep
 #include <strings.h>    // bzero
 #include <string.h>     // strlen
+#include <csignal>
 
 #include "TextChangeOrder.h"
 
