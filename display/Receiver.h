@@ -137,6 +137,7 @@ private:
      int port_number;
      int listen_for_clients_sockfd;          // entry in the socket_descriptors array for listening for new clients
      std::string closingErrorMessage;   // if not empty, displayable error message to queue when stopping thread
+     RawMessage active_client_last_message;  // last message received from active client (if any), used for restoring display later
 
      // If multiple locks, must ensure can not have deadlock between threads waiting for resources.
      // One way to do that is to ensure that only the Run thread can have multiple locks at once,
@@ -152,7 +153,7 @@ private:
      bool running_;                          
 
      // use MutexLock on mutex_msg_queue to allow thread-safe read&write on this group
-     std::deque<RawMessage> active_message_queue;     
+     std::deque<RawMessage> active_message_queue;
 
      // use MutexLock on mutex_descriptors to allow thread-safe read&write on this group
      bool pending_active_at_next_message;  // if true, first message received will determine the active client
