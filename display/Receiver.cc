@@ -745,7 +745,7 @@ void Receiver::showClients() {
         clientDescription.setString(descriptor_support_data[i].source_name_unique);
 
         if (active_display_sockfd >= 0 && socket_descriptors[i].fd == active_display_sockfd) {
-            const std::string prefixActive = "*";
+            const std::string prefixActive = "* ";
             clientDescription.setString(prefixActive + clientDescription.getText());
         }
 
