@@ -201,9 +201,12 @@ void Receiver::checkAndAcceptConnection() {
             socket_descriptors[num_socket_descriptors].fd = new_socket_descriptor;
             socket_descriptors[num_socket_descriptors].events = POLLIN;
 
+            descriptor_support_data[num_socket_descriptors] = DescriptorInfo();  // overwrite to start from default constructor (belt and suspenders)
             descriptor_support_data[num_socket_descriptors].tcp_unprocessed = "";  // empty buffer to accumulate unprocessed messages separated by newlines
             descriptor_support_data[num_socket_descriptors].inactive_message_queue.clear();  // empty queue
             descriptor_support_data[num_socket_descriptors].source_name_unique = (cli_addr.sin_family == AF_INET ? inet_ntoa(cli_addr.sin_addr) : "(non-IPV4)");
+            descriptor_support_data[num_socket_descriptors].pending_writes.clear(); // empty queue of messages to be sent to this source
+            descriptor_support_data[num_socket_descriptors].do_display_report = false; // default to no report requested
 
             // ensure source address name is unique
             bool found_duplicate;
