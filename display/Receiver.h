@@ -182,6 +182,7 @@ private:
      void closeAllSockets();
      void closeSingleSocket(int aDescriptor);     // may also lock on mutex_running
      void compressSockets();
+     void processWrites();
      void internalSetActiveClient(std::string aClientName);    
      void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
      void transmitClients(DescriptorInfo& aDescriptorRef);

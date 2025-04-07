@@ -669,29 +669,7 @@ void Receiver::Run() {
                 }
 
                 // now look for any socket writes that have been requested on remaining connections, and send them
-                for (int wIndex = 0; wIndex < num_socket_descriptors; wIndex++) {
-                    if (socket_descriptors[wIndex].fd == listen_for_clients_sockfd) {
-                        continue;  // skip the listening socket
-                    }
-
-                    // attempt to send all pending writes to this socket, but discard if any errors occur
-                    while (descriptor_support_data[wIndex].pending_writes.size() > 0) {
-                        const int result_flag = send(socket_descriptors[wIndex].fd, descriptor_support_data[wIndex].pending_writes.front().c_str(), descriptor_support_data[wIndex].pending_writes.front().length(), MSG_DONTWAIT);
-                        if (result_flag < 0) {
-                            fprintf(stderr, "send() failed for %s, errno=%d\n", descriptor_support_data[wIndex].source_name_unique.c_str(), errno);
-                            descriptor_support_data[wIndex].pending_writes.clear();  // clear the pending write buffer
-                        }
-                        else {
-                            if (isatty(STDIN_FILENO)) {
-                                // Only give a message if we are interactive. If connected via pipe, be quiet
-                                printf("Sent to %s: %s\n", 
-                                    descriptor_support_data[wIndex].source_name_unique.c_str(), 
-                                    nonprintableToHexadecimal(descriptor_support_data[wIndex].pending_writes.front().c_str()).c_str());
-                            }    
-                            descriptor_support_data[wIndex].pending_writes.pop_front();                
-                        }
-                    }
-                }
+                processWrites();
             }
         }
     }
@@ -712,6 +690,32 @@ void Receiver::Run() {
     if (isatty(STDIN_FILENO)) {
         // Only give a message if we are interactive. If connected via pipe, be quiet
         printf("Sockets closed, ending Receiver.\n");
+    }
+}
+
+void Receiver::processWrites() {
+    for (int wIndex = 0; wIndex < num_socket_descriptors; wIndex++) {
+        if (socket_descriptors[wIndex].fd == listen_for_clients_sockfd) {
+            continue;  // skip the listening socket
+        }
+
+        // attempt to send all pending writes to this socket, but discard if any errors occur
+        while (descriptor_support_data[wIndex].pending_writes.size() > 0) {
+            const int result_flag = send(socket_descriptors[wIndex].fd, descriptor_support_data[wIndex].pending_writes.front().c_str(), descriptor_support_data[wIndex].pending_writes.front().length(), MSG_DONTWAIT);
+            if (result_flag < 0) {
+                fprintf(stderr, "send() failed for %s, errno=%d\n", descriptor_support_data[wIndex].source_name_unique.c_str(), errno);
+                descriptor_support_data[wIndex].pending_writes.clear();  // clear the pending write buffer
+            }
+            else {
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("Sent to %s: %s\n", 
+                        descriptor_support_data[wIndex].source_name_unique.c_str(), 
+                        nonprintableToHexadecimal(descriptor_support_data[wIndex].pending_writes.front().c_str()).c_str());
+                }    
+                descriptor_support_data[wIndex].pending_writes.pop_front();                
+            }
+        }
     }
 }
 
