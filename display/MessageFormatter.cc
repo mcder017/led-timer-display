@@ -125,11 +125,12 @@ bool MessageFormatter::handleAlgeMessage(const Receiver::RawMessage& message) {
     // allow for possibility that (perhaps due to RTPro configuration change or disconnect/reconnect) we will not see intermediate locations in upcoming messages
     // and we do not want to throw away all future messages
 
-    if (isBoardIdentifier && isStillRunningTime) {   // seeing board identifiers and not a total/run/split time, so not a duplicate of a recent nicely formatted intermediate message
-      // reset flag, to see if still receiving location data in upcoming messages
+    if (isBoardIdentifier && message.data.at(BOARD_IDENTIFIER_POS) == lastBoardIDChar) {   // seeing consecutive same board identifiers; are we no longer seeing event types?
+      // reset flag, do not treat as duplicate message.
       observedAlgeEventTypeChar = false;  
     }
   }
+  lastBoardIDChar = isBoardIdentifier ? message.data.at(BOARD_IDENTIFIER_POS) : ' ';  // save the last board ID char seen (if any)
 
   if (observedAlgeEventTypeChar) {
     if (isIntermediateOne) {

@@ -23,6 +23,7 @@ private:
   TextChangeOrder defaultOrderFormat;
 
   bool observedAlgeEventTypeChar;  // state information: true if have most recently seen intermediate location specifications and hence we'll ignore messages without them as copies
+  char lastBoardIDChar;  // state information: last board ID char seen in message (if any)
   int nextAlgeIntermediateLocationID;  // state information: next intermediate location to display if multiple messages received
 
   bool handleAlgeMessage(const Receiver::RawMessage& message);
