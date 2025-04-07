@@ -105,6 +105,7 @@ protected:
      static constexpr char UPLC_COMMAND_SHOW_CLIENTS = '!';
      static constexpr char UPLC_COMMAND_TRANSMIT_CLIENTS = '?';
      static constexpr char UPLC_COMMAND_ECHO_MESSAGES = '&';
+     static constexpr char UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT = '0';
 
      inline bool lockedTestRunning() {
           rgb_matrix::MutexLock l(&mutex_is_running);
