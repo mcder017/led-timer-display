@@ -850,6 +850,15 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             if (message_string.length() > UPLC_COMMAND_PREFIX.length()+1) {
                 const std::string echo_message = message_string.substr(UPLC_COMMAND_PREFIX.length()+1, 1);  // +1 to skip command char
                 aDescriptorRef.do_display_report = echo_message.at(0) == '1';
+
+                // ensure initial report coming
+                if (active_message_queue.size() == 0) {
+                    std::string report_last_message = UPLC_ECHO_PREFIX + active_client_last_message.data;
+                    if (report_last_message.at(report_last_message.length()-1) != PROTOCOL_END_OF_LINE) {
+                        report_last_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
+                    }
+                    aDescriptorRef.pending_writes.push_back(report_last_message);
+                }                
                 updateIsAnyReportingRequested();
 
                 if (isatty(STDIN_FILENO)) {
