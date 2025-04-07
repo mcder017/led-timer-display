@@ -507,6 +507,14 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                     descriptor_support_data[new_active_index].inactive_message_queue.pop_front();
                 }
             }
+            else {
+                // if no messages in inactive queue, clear the display
+                if (isatty(STDIN_FILENO)) {
+                    // Only give a message if we are interactive. If connected via pipe, be quiet
+                    printf("No messages pending for new source, clearing display...\n");
+                }                    
+                active_message_queue.push_back(RawMessage(SIMPLE_TEXT, ""));  // clear display
+            }
 
             // update socket reference
             active_display_sockfd = socket_descriptors[new_active_index].fd;  // set active display to this source
