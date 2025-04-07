@@ -566,7 +566,7 @@ void Receiver::internalReportDisplayed(const RawMessage& aMessage) {
     }
 }
 
-void Receiver::void updateIsAnyReportingRequested() {
+void Receiver::updateIsAnyReportingRequested() {
     bool result = false;
 
     // check if any of the descriptors are requesting a report
@@ -847,7 +847,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
 
         case UPLC_COMMAND_ECHO_MESSAGES:
             // set flags here.  Then in led-timer-display, call back to Receiver to new method with (simple text, or formatted) message when order created
-            if (message_string.length() > UPLC_COMMAND_PREFIX.length+1) {
+            if (message_string.length() > UPLC_COMMAND_PREFIX.length()+1) {
                 const std::string echo_message = message_string.substr(UPLC_COMMAND_PREFIX.length()+1, 1);  // +1 to skip command char
                 aDescriptorRef.do_display_report = echo_message.at(0) == '1';
                 updateIsAnyReportingRequested();
