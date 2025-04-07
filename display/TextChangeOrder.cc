@@ -140,6 +140,14 @@ std::string TextChangeOrder::toUPLCFormattedMessage() const {
     result += "D" + std::to_string((int)velocityIsHorizontal);
     result += "S" + std::to_string((int)velocityScrollType);
 
+    // add x and y origin
+    {
+        constexpr int MAX_ORIGIN_CONVERSION_LENGTH = 20;
+        char formattedOriginBuffer[MAX_ORIGIN_CONVERSION_LENGTH];
+        sprintf(formattedOriginBuffer, "X%+02dY%+02d", x_origin, y_origin);
+        result += formattedOriginBuffer;
+    }
+
     // add text
     result += "=" + text;
 
