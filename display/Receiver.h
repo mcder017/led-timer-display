@@ -106,7 +106,7 @@ public:
           }
      }
 
-     bool isAnyReportingRequested() {
+     inline bool isAnyReportingRequested() {
           rgb_matrix::MutexLock l(&mutex_report_flag);
           return is_any_reporting_requested;
      }

@@ -705,10 +705,16 @@ void Receiver::Run() {
                     compressSockets();  // remove closed sockets from array
                     needs_compress = false;
                 }
-
-                // now look for any socket writes that have been requested on remaining connections, and send them
-                processWrites();
             }
+        }
+
+        {   // encapsulate lock on descriptors
+            // note that writes can be due to reporting OR due to specific commands (so we search for writes even if all reporting is off)
+
+            rgb_matrix::MutexLock l(&mutex_descriptors);
+
+            // now look for any socket writes that have been requested on remaining connections, and send them
+            processWrites();
         }
     }
     // TODO main loop could be wrapped in try/catch
