@@ -196,7 +196,7 @@ void Receiver::checkAndAcceptConnection() {
             }
             // no more connections to accept, ready to exit loop
         }
-        else {  // new connection ready
+        else {  // new connection ready 
             // append new socket descriptor to array
             socket_descriptors[num_socket_descriptors].fd = new_socket_descriptor;
             socket_descriptors[num_socket_descriptors].events = POLLIN;
