@@ -313,6 +313,7 @@ int main(int argc, char *argv[]) {
                           
   // ****************************************************************************
   Displayer myDisplayer(matrix_options, runtime_opt);
+  bool report_when_display_emptied = false;
 
   Receiver::setPreferredCommandFormatTemplate(smallVerticalScrollTextTemplateIndex);  // set as default for display of command responses
   Receiver myReceiver(port_number);
@@ -327,7 +328,12 @@ int main(int argc, char *argv[]) {
   // now show text from command line options
   Receiver::RawMessage startup_message(Receiver::Protocol::SIMPLE_TEXT, line);
   if (myFormatter.handleMessage(startup_message)) {
-    myReceiver.reportDisplayed(startup_message);  
+    const TextChangeOrder& currChangeOrder = myDisplayer.getChangeOrder();
+
+    // if text empty or scrolls across and stops as an empty display, watch for completion
+    report_when_display_emptied = currChangeOrder.orderDoneHasEmptyDisplay();
+
+    myReceiver.reportDisplayed(currChangeOrder.toUPLCFormattedMessage());  
   }
 
   signal(SIGTERM, InterruptHandler);
@@ -342,8 +348,6 @@ int main(int argc, char *argv[]) {
                           true);  // force report of initial connection status
                  
   // ****************************************************************************
-  bool report_when_display_emptied = false;
-
   while (!interrupt_received) {
 
     updateReportConnections(myDisplayer, myReceiver, smallFontVerticalScrollTemplate, currIsNoActiveSource);
@@ -369,7 +373,7 @@ int main(int argc, char *argv[]) {
     myDisplayer.iota();
 
     if (report_when_display_emptied && myDisplayer.isChangeOrderDone()) {            
-      myReceiver.reportDisplayed("");  // report empty display
+      myReceiver.reportDisplayed(TextChangeOrder("").toUPLCFormattedMessage());  // report empty display
       report_when_display_emptied = false;
     }
 
