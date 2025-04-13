@@ -552,8 +552,8 @@ void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
     }
 }
 
-void Receiver::internalReportDisplayed(const RawMessage& aMessage) {
-    std::string report_message = UPLC_ECHO_PREFIX + aMessage.data;  
+void Receiver::internalReportDisplayed(const std::string& aMessage) {
+    std::string report_message = UPLC_ECHO_PREFIX + aMessage;  
     if (report_message.at(report_message.length()-1) != PROTOCOL_END_OF_LINE) {
         report_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
     }

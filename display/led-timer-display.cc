@@ -342,6 +342,8 @@ int main(int argc, char *argv[]) {
                           true);  // force report of initial connection status
                  
   // ****************************************************************************
+  bool report_when_display_emptied = false;
+
   while (!interrupt_received) {
 
     updateReportConnections(myDisplayer, myReceiver, smallFontVerticalScrollTemplate, currIsNoActiveSource);
@@ -354,12 +356,22 @@ int main(int argc, char *argv[]) {
         const Receiver::RawMessage message = myReceiver.popPendingMessage();
         const bool new_display = myFormatter.handleMessage(message);
         if (new_display) {
-          myReceiver.reportDisplayed(message);  
+          const TextChangeOrder& currChangeOrder = myDisplayer.getChangeOrder();
+
+          // if text empty or scrolls across and stops as an empty display, watch for completion
+          report_when_display_emptied = currChangeOrder.orderDoneHasEmptyDisplay();
+
+          myReceiver.reportDisplayed(currChangeOrder.toUPLCFormattedMessage());  
         }
       }
     }
 
     myDisplayer.iota();
+
+    if (report_when_display_emptied && myDisplayer.isChangeOrderDone()) {            
+      myReceiver.reportDisplayed("");  // report empty display
+      report_when_display_emptied = false;
+    }
 
     // when no messages can be received, and there is nothing to scroll, delay quite a while before looping
     if (!myReceiver.isRunning() && !myDisplayer.isContinuousScroll() && myDisplayer.isChangeOrderDone()) {

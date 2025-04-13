@@ -92,7 +92,7 @@ public:
 
      std::string getLocalAddresses();
 
-     void reportDisplayed(const RawMessage& aMessage) {
+     void reportDisplayed(const std::string& aMessage) {
           // public methods must only lock one flag at a time
           {    // encapsulate lock
                rgb_matrix::MutexLock l(&mutex_report_flag);
@@ -106,6 +106,11 @@ public:
                rgb_matrix::MutexLock l(&mutex_descriptors);
                internalReportDisplayed(aMessage);  
           }
+     }
+
+     std::string getReportedDisplayedMessage() {
+          rgb_matrix::MutexLock l(&mutex_report_flag);
+          return reported_displayed_last_message;
      }
 
      inline bool isAnyReportingRequested() {
@@ -193,7 +198,7 @@ private:
 
      // use MutexLock on mutex_report_flag to allow thread-safe read&write on this group
      bool is_any_reporting_requested; // if true, at least one client wants a copy of all displayed messages (at external reports, not when queued messages done internally)
-     RawMessage reported_displayed_last_message;  // last message reported (from external) as displayed
+     std::string reported_displayed_last_message;  // last message reported (from external) as displayed
 
      // locks on mutex_msg_queue AND on mutex_descriptors internally
      void doubleLockedChangeActiveDisplay(std::string target_client_name);
@@ -215,7 +220,7 @@ private:
      void internalSetActiveClient(std::string aClientName);    
      void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
      void transmitClients(DescriptorInfo& aDescriptorRef);
-     void internalReportDisplayed(const RawMessage& aMessage);    
+     void internalReportDisplayed(const std::string& aMessage);    
      void updateIsAnyReportingRequested();        // also locks mutex_report_flag internally; call when adding client, removing client, or changing report flag for client
      void showClients();                          // also locks on mutex_msg_queue internally
 

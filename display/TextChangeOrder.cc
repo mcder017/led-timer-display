@@ -148,8 +148,9 @@ std::string TextChangeOrder::toUPLCFormattedMessage() const {
         result += formattedOriginBuffer;
     }
 
-    // add text
-    result += "=" + text;
+    // add text, truncated if necessary
+    constexpr int MAX_TEXT_LENGTH = 55;  // max length of text to be sent
+    result += "=" + text.substr(0, MAX_TEXT_LENGTH);  // add text, truncated to max length
 
     result += UPLC_FORMATTED_SUFFIX;
     return result;
