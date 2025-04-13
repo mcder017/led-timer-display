@@ -865,7 +865,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
 
                 if (aDescriptorRef.do_display_report) {
                     // ensure initial report coming                
-                    std::string signup_message = UPLC_ECHO_PREFIX + reported_displayed_last_message.data;
+                    std::string signup_message = UPLC_ECHO_PREFIX + reported_displayed_last_message;
                     if (signup_message.at(signup_message.length()-1) != PROTOCOL_END_OF_LINE) {
                         signup_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
                     }
