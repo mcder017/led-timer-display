@@ -930,6 +930,7 @@ void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
 
         response += descriptor_support_data[i].source_name_unique;
     }
+    response += UPLC_TXMT_REQUESTING_CLIENT_PREFIX + aDescriptorRef.source_name_unique;
     response += PROTOCOL_END_OF_LINE;
     aDescriptorRef.pending_writes.push_back(response);  // queue for sending to this client
 }

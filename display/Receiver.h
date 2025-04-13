@@ -134,8 +134,9 @@ protected:
      static constexpr char UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT = '0';
 
      inline static const std::string UPLC_TXMT_PREFIX = "~~";
-     inline static const std::string UPLC_TXMT_INACTIVE_CLIENT_PREFIX = "~~";
-     inline static const std::string UPLC_TXMT_ACTIVE_CLIENT_PREFIX = "~~*!";
+     inline static const std::string UPLC_TXMT_INACTIVE_CLIENT_PREFIX = "~~_";
+     inline static const std::string UPLC_TXMT_ACTIVE_CLIENT_PREFIX = "~~!";
+     inline static const std::string UPLC_TXMT_REQUESTING_CLIENT_PREFIX = "~~Y";
 
      inline static const std::string UPLC_ECHO_PREFIX = "=";
 
