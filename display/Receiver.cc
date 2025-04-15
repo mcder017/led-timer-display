@@ -933,10 +933,10 @@ void Receiver::transmitNotifyCurrentClient() {
         if (descriptor_support_data[i].awaiting_client_change) {
             descriptor_support_data[i].pending_writes.push_back(response);  // queue for sending to this client
             descriptor_support_data[i].awaiting_client_change = false;  // clear flag
-            
+
             if (isatty(STDIN_FILENO)) {
                 // Only give a message if we are interactive. If connected via pipe, be quiet
-                printf("Queuing reply to %s of active client message: %s\n", descriptor_support_data[i].source_name_unique.c_str(), response.c_str());
+                printf("Queueing reply to %s of active client message: %s\n", descriptor_support_data[i].source_name_unique.c_str(), response.c_str());
             }                    
         }
     }

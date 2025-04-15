@@ -144,7 +144,7 @@ std::string TextChangeOrder::toUPLCFormattedMessage() const {
     {
         constexpr int MAX_ORIGIN_CONVERSION_LENGTH = 20;
         char formattedOriginBuffer[MAX_ORIGIN_CONVERSION_LENGTH];
-        sprintf(formattedOriginBuffer, "X%+02dY%+02d", x_origin, y_origin);
+        sprintf(formattedOriginBuffer, "X%+03dY%+03d", x_origin, y_origin);
         result += formattedOriginBuffer;
     }
 
@@ -286,8 +286,8 @@ bool TextChangeOrder::fromUPLCFormattedMessage(std::string messageString) {
                 return true;   // done processing all characters
             }
             default:
-                fprintf(stderr, "At conversion, UPLC formatted with unknown format code %c:%s\n",
-                        c, messageString.c_str());   
+                fprintf(stderr, "At conversion, UPLC formatted with unknown format code %c at char index %d: %s\n",
+                        c, charIndex, messageString.c_str());   
                 //charIndex++;  // skip over the unknown format code, keep searching (may see multiple errors)
                 return false;
         }
