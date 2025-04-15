@@ -836,6 +836,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
     switch(message_string.at(UPLC_COMMAND_PREFIX.length())) { 
         case UPLC_COMMAND_SET_ACTIVE_CLIENT:
             internalSetActiveClient(message_string.substr(UPLC_COMMAND_PREFIX.length()+1, message_string.length()-UPLC_COMMAND_PREFIX.length()-1-1));  // +1 to skip command char, -1 to skip end-of-line char
+            aDescriptorRef.awaiting_client_change = true;  // set flag to notify this client when active source is updated
             break;
 
         case UPLC_COMMAND_SHOW_CLIENTS:
@@ -928,12 +929,18 @@ void Receiver::transmitNotifyCurrentClient() {
     }
     response += PROTOCOL_END_OF_LINE;   // may or may not have an active client name listed
 
+    int num_notified = 0;
     for (int i=0; i < num_socket_descriptors; i++) {
         if (descriptor_support_data[i].awaiting_client_change) {
             descriptor_support_data[i].pending_writes.push_back(response);  // queue for sending to this client
             descriptor_support_data[i].awaiting_client_change = false;  // clear flag
+            num_notified++;
         }
     }
+    if (isatty(STDIN_FILENO)) {
+        // Only give a message if we are interactive. If connected via pipe, be quiet
+        printf("Replying to %d by queueing active client message: %s\n", num_notified, response.c_str());
+    }                    
 }
 
 void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
