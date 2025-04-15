@@ -49,7 +49,7 @@ bool MessageFormatter::handleMessage(const Receiver::RawMessage& message) {
 bool MessageFormatter::handleUPLCFormattedMessage(const Receiver::RawMessage& message) {
   TextChangeOrder newOrder(defaultOrderFormat);  // copy the default order format
   if (!newOrder.fromUPLCFormattedMessage(message.data)) {  // conversion failed
-    fprintf(stderr, "UPLC format conversion failed on\n");
+    fprintf(stderr, "UPLC format conversion failed\n");
     return false;
   }
   myDisplayer.startChangeOrder(newOrder);  // start the new order
