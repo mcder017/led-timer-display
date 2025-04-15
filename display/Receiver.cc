@@ -539,6 +539,8 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
             printf("Changing active source requested but id is empty; disregarding.\n");
         }                    
     }
+
+    transmitNotifyCurrentClient();
 }
 
 void Receiver::lockedAppendMessageActiveQueue(const RawMessage& aMessage) {
@@ -908,6 +910,29 @@ void Receiver::showClients() {
 
         RawMessage clientInfoMessage(UPLC_FORMATTED_TEXT, clientDescription.toUPLCFormattedMessage());
         lockedAppendMessageActiveQueue(clientInfoMessage);
+    }
+}
+
+void Receiver::transmitNotifyCurrentClient() {
+    std::string response = UPLC_TXMT_CURRENT_ACTIVE_CLIENT_PREFIX;;
+
+    for (int i=0; i < num_socket_descriptors; i++) {
+        if (socket_descriptors[i].fd == listen_for_clients_sockfd) { 
+            continue;  // skip port listener
+        }
+
+        if (active_display_sockfd >= 0 && socket_descriptors[i].fd == active_display_sockfd) {
+            response += descriptor_support_data[i].source_name_unique;
+            break;
+        }
+    }
+    response += PROTOCOL_END_OF_LINE;   // may or may not have an active client name listed
+
+    for (int i=0; i < num_socket_descriptors; i++) {
+        if (descriptor_support_data[i].awaiting_client_change) {
+            aDescriptorRef.pending_writes.push_back(response);  // queue for sending to this client
+            descriptor_support_data[i].awaiting_client_change = false;  // clear flag
+        }
     }
 }
 
