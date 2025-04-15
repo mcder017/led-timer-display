@@ -227,6 +227,7 @@ private:
      void internalReportDisplayed(const std::string& aMessage);    
      void updateIsAnyReportingRequested();        // also locks mutex_report_flag internally; call when adding client, removing client, or changing report flag for client
      void showClients();                          // also locks on mutex_msg_queue internally
+     void transmitNotifyCurrentClient();
 
      // no lock needed, only used by this object's Run thread
      bool extractLineToQueue(DescriptorInfo& aDescriptorRef);     
