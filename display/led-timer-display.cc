@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
           const TextChangeOrder& currChangeOrder = myDisplayer.getChangeOrder();
 
           // if text empty or scrolls across and stops as an empty display, watch for completion
-          report_when_display_emptied = currChangeOrder.orderDoneHasEmptyDisplay();
+          report_when_display_emptied = currChangeOrder.isScrolling() && currChangeOrder.orderDoneHasEmptyDisplay();
 
           myReceiver.reportDisplayed(currChangeOrder.toUPLCFormattedMessage());  
         }

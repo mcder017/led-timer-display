@@ -929,18 +929,17 @@ void Receiver::transmitNotifyCurrentClient() {
     }
     response += PROTOCOL_END_OF_LINE;   // may or may not have an active client name listed
 
-    int num_notified = 0;
     for (int i=0; i < num_socket_descriptors; i++) {
         if (descriptor_support_data[i].awaiting_client_change) {
             descriptor_support_data[i].pending_writes.push_back(response);  // queue for sending to this client
             descriptor_support_data[i].awaiting_client_change = false;  // clear flag
-            num_notified++;
+            
+            if (isatty(STDIN_FILENO)) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Queuing reply to %s of active client message: %s\n", descriptor_support_data[i].source_name_unique.c_str(), response.c_str());
+            }                    
         }
     }
-    if (isatty(STDIN_FILENO)) {
-        // Only give a message if we are interactive. If connected via pipe, be quiet
-        printf("Replying to %d by queueing active client message: %s\n", num_notified, response.c_str());
-    }                    
 }
 
 void Receiver::transmitClients(DescriptorInfo& aDescriptorRef) {
