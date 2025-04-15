@@ -930,7 +930,7 @@ void Receiver::transmitNotifyCurrentClient() {
 
     for (int i=0; i < num_socket_descriptors; i++) {
         if (descriptor_support_data[i].awaiting_client_change) {
-            aDescriptorRef.pending_writes.push_back(response);  // queue for sending to this client
+            descriptor_support_data[i].pending_writes.push_back(response);  // queue for sending to this client
             descriptor_support_data[i].awaiting_client_change = false;  // clear flag
         }
     }
