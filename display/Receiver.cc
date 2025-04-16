@@ -676,7 +676,7 @@ void Receiver::Run() {
                                         // Only give a message if we are interactive. If connected via pipe, be quiet
                                         printf("Assigning active display by first displayable message, internal index %d\n", i);
                                     }                    
-                                    active_display_sockfd = socket_descriptors[i].fd;  // set active display to this source
+                                    pending_active_display_name = descriptor_support_data[i].source_name_unique;  // set pending active display to this source
                                     pending_active_at_next_message = false;  // only set active display once, at first message; not automatically at every disconnect of active display
                                 }
 
