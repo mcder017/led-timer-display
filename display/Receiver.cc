@@ -608,6 +608,17 @@ void Receiver::Run() {
             pending_active_display_name = "";  // clear pending display source
         }
 
+        // now that any change of active client is done, check if requested to transmit current client list
+        {   // encapsulate lock
+            rgb_matrix::MutexLock l(&mutex_descriptors);            
+            for (int i = 0; i < num_socket_descriptors; i++) {
+                if (descriptor_support_data[i].awaiting_transmit_clients) {
+                    transmitClients(aDescriptorRef);
+                    aDescriptor.awaiting_transmit_clients = false;
+                }
+            }
+        }
+
         // check for pending connections and data
         int result;
         {   // encapsulate lock
@@ -857,7 +868,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
 
         case UPLC_COMMAND_TRANSMIT_CLIENTS:
-            transmitClients(aDescriptorRef);
+            aDescriptorRef.awaiting_client_change = true;  // set flag to transmit client list to this source, after any pending command to set active client (to ensure set/query processed in sequence)
             break;
 
         case UPLC_COMMAND_ECHO_MESSAGES:
