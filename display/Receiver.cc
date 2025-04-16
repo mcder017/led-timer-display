@@ -868,7 +868,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
 
         case UPLC_COMMAND_TRANSMIT_CLIENTS:
-            aDescriptorRef.awaiting_client_change = true;  // set flag to transmit client list to this source, after any pending command to set active client (to ensure set/query processed in sequence)
+            aDescriptorRef.awaiting_transmit_clients = true;  // set flag to transmit client list to this source, after any pending command to set active client (to ensure set/query processed in sequence)
             break;
 
         case UPLC_COMMAND_ECHO_MESSAGES:
