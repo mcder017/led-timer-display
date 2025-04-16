@@ -132,6 +132,7 @@ protected:
      static constexpr char UPLC_COMMAND_TRANSMIT_CLIENTS = '?';
      static constexpr char UPLC_COMMAND_ECHO_MESSAGES = '&';
      static constexpr char UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT = '0';
+     static constexpr char UPLC_COMMAND_CLEAR_ONCE = '^';
 
      inline static const std::string UPLC_TXMT_PREFIX = "~~";
      inline static const std::string UPLC_TXMT_INACTIVE_CLIENT_PREFIX = "~~_";
