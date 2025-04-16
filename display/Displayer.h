@@ -24,7 +24,7 @@ class Displayer {
     void startChangeOrder(const TextChangeOrder& aChangeOrder);
     [[nodiscard]] const TextChangeOrder& getChangeOrder() const {return currChangeOrder;}
     [[nodiscard]] bool isChangeOrderDone() const { return currChangeOrderDone; }    // true if done or continuous scroll completed at least once
-    [[nodiscard]] bool isContinuousScroll() const {return currChangeOrder.isScrolling && currChangeOrder.getVelocityScrollType() == TextChangeOrder::CONTINUOUS;}
+    [[nodiscard]] bool isContinuousScroll() const {return currChangeOrder.isScrolling() && currChangeOrder.getVelocityScrollType() == TextChangeOrder::CONTINUOUS;}
 
     void iota();    // continue working on any previously assigned task, then return (non-blocking)
 
