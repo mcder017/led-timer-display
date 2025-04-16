@@ -613,8 +613,8 @@ void Receiver::Run() {
             rgb_matrix::MutexLock l(&mutex_descriptors);            
             for (int i = 0; i < num_socket_descriptors; i++) {
                 if (descriptor_support_data[i].awaiting_transmit_clients) {
-                    transmitClients(aDescriptorRef);
-                    aDescriptor.awaiting_transmit_clients = false;
+                    transmitClients(descriptor_support_data[i]);
+                    descriptor_support_data[i].awaiting_transmit_clients = false;
                 }
             }
         }
