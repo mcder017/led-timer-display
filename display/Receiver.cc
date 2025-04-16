@@ -852,7 +852,6 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
         return;  // not a UPLC command
     }
 
-    bool clear_is_for_current_client = false;
     switch(message_string.at(UPLC_COMMAND_PREFIX.length())) { 
         case UPLC_COMMAND_SET_ACTIVE_CLIENT:
             internalSetActiveClient(message_string.substr(UPLC_COMMAND_PREFIX.length()+1, message_string.length()-UPLC_COMMAND_PREFIX.length()-1-1));  // +1 to skip command char, -1 to skip end-of-line char
@@ -864,9 +863,6 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
             break;
 
         case UPLC_COMMAND_CLEAR_FOR_CURRENT_CLIENT:
-            clear_is_for_current_client = true;
-            // continue into next case
-        case UPLC_COMMAND_CLEAR_ONCE:
             {   // scope for local variables
                 RawMessage clearMessage(SIMPLE_TEXT, "");
 
@@ -875,10 +871,17 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
 
                 // always keep copy of last displayable (non-command) message from the active client
                 // for use in storing when the active client is switched, and later switched back...
-                // ...however, command has option to not associate the blanking with current client, in case user decides to re-display last message
-                if (clear_is_for_current_client) {
-                    active_client_last_message = clearMessage;
-                }
+                active_client_last_message = clearMessage;
+            }
+            break;
+        case UPLC_COMMAND_CLEAR_ONCE:
+            {   // scope for local variables
+                RawMessage clearMessage(SIMPLE_TEXT, "");
+
+                // copy to active queue
+                lockedAppendMessageActiveQueue(clearMessage);
+
+                // command here is to not associate the blanking with current client, in case user decides to re-display last message
             }
             break;
 
