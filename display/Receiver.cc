@@ -599,12 +599,15 @@ void Receiver::Run() {
     const short FLAG_SINGLE_CLOSE = POLLPRI | POLLRDHUP | POLLHUP;  // flags for which we will close single connection
     const short FLAG_DO_STOP = ~(FLAG_POLLIN | FLAG_SINGLE_CLOSE);  // any other flag treated as error for which we will stop the receiver completely
 
+    bool do_notify_updated_client_list = false;  // if true, send client list to all clients who monitor the displayed text
+
     lockedSetupInitialSocket(); // may ALSO lock running internally
 
     while (lockedTestRunning()) {
         // check if requested to change active display (and its queue)
         if (pending_active_display_name.length() > 0) {
             doubleLockedChangeActiveDisplay(pending_active_display_name);          // locks msg_queue AND descriptors
+            do_notify_updated_client_list = true;
             pending_active_display_name = "";  // clear pending display source
         }
 
@@ -612,11 +615,13 @@ void Receiver::Run() {
         {   // encapsulate lock
             rgb_matrix::MutexLock l(&mutex_descriptors);            
             for (int i = 0; i < num_socket_descriptors; i++) {
-                if (descriptor_support_data[i].awaiting_transmit_clients) {
+                if (descriptor_support_data[i].awaiting_transmit_clients 
+                    || (do_notify_updated_client_list && descriptor_support_data[i].do_display_report)) {
                     transmitClients(descriptor_support_data[i]);
                     descriptor_support_data[i].awaiting_transmit_clients = false;
                 }
             }
+            do_notify_updated_client_list = false;  
         }
 
         // check for pending connections and data
@@ -654,6 +659,7 @@ void Receiver::Run() {
                         if (socket_descriptors[i].fd == listen_for_clients_sockfd) {
                             // new connection to accept
                             checkAndAcceptConnection(); // appends to array
+                            do_notify_updated_client_list = true;
                         }
                         else {
                             // data on existing connection
@@ -690,6 +696,7 @@ void Receiver::Run() {
 
                                 closeSingleSocket(socket_descriptors[i].fd);
                                 needs_compress = true;
+                                do_notify_updated_client_list = true;
                             }
                         }
                         result--;
@@ -712,6 +719,7 @@ void Receiver::Run() {
                     
                         closeSingleSocket(socket_descriptors[i].fd);
                         needs_compress = true;
+                        do_notify_updated_client_list = true;
 
                         result--;
                     }
@@ -884,6 +892,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
                         signup_message += PROTOCOL_END_OF_LINE;  // add end-of-line character to message if needed (SIMPLE_TEXT protocol in particular)
                     }
                     aDescriptorRef.pending_writes.push_back(signup_message);
+                    aDescriptorRef.awaiting_transmit_clients = true;
                 }
 
                 updateIsAnyReportingRequested();
