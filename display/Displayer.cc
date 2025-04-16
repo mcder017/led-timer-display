@@ -178,7 +178,6 @@ inline void Displayer::setChangeDone(bool isChangeDone) {
 
   if (currChangeOrderDone && isatty(STDIN_FILENO)) {
     // Only give a message if we are interactive. If connected via pipe, be quiet
-    printf("(%d)",currChangeOrderDone); /* TODO DEBUG */
     printf("Displayed:%s\n",currChangeOrder.getText());
   }
 }
@@ -264,15 +263,7 @@ void Displayer::iota() {
             if ((scroll_direction < 0 && x + length < 0) ||
                (scroll_direction > 0 && x > canvas->width())) {
               x = currChangeOrder.getXOrigin() + ((scroll_direction > 0) ? -length : canvas->width());
-              if (!currChangeOrderDone && isatty(STDIN_FILENO)) {
-                // Only give a message if we are interactive. If connected via pipe, be quiet
-                printf("(A%d)",currChangeOrderDone); /* TODO DEBUG */
-              }            
               if (!currChangeOrderDone) setChangeDone();  // completed at least one cycle of scrolling
-              if (!currChangeOrderDone && isatty(STDIN_FILENO)) {
-                // Only give a message if we are interactive. If connected via pipe, be quiet
-                printf("(B%d)",currChangeOrderDone); /* TODO DEBUG */
-              }            
             }
           }
           else {
