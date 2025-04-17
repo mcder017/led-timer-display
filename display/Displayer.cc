@@ -247,14 +247,14 @@ void Displayer::iota() {
     // compute next position and/or done status
     if (currChangeOrder.isScrolling()) {
       if (currChangeOrder.getVelocityIsHorizontal()) {
-        x += scroll_direction;
+        x += scroll_direction;  // unit magnitude
       }
       else {
-        y += scroll_direction;
+        y += scroll_direction;  // unit magnitude
       }
 
 
-      // handle single scroll (non-continuous scrolling)
+      // handle scrolling
       switch (currChangeOrder.getVelocityScrollType()) {
         case TextChangeOrder::CONTINUOUS:
           // handle wrapping
@@ -279,16 +279,16 @@ void Displayer::iota() {
         case TextChangeOrder::SINGLE_ON:
           if (currChangeOrder.getVelocityIsHorizontal()) {
             // stop horizontal scroll when reach origin position
-            if ((scroll_direction < 0 && x <= currChangeOrder.getXOrigin()) ||
-                (scroll_direction > 0 && x >= currChangeOrder.getXOrigin())) {
+            if ((scroll_direction < 0 && x < currChangeOrder.getXOrigin()) ||
+                (scroll_direction > 0 && x > currChangeOrder.getXOrigin())) {
               x = currChangeOrder.getXOrigin();
               setChangeDone();
             }
           }
           else {
             // stop vertical scroll when reach origin position
-            if ((scroll_direction < 0 && y <= currChangeOrder.getYOrigin()) ||
-                (scroll_direction > 0 && y >= currChangeOrder.getYOrigin())) {
+            if ((scroll_direction < 0 && y < currChangeOrder.getYOrigin()) ||
+                (scroll_direction > 0 && y > currChangeOrder.getYOrigin())) {
               y = currChangeOrder.getYOrigin();
               setChangeDone();
             }
@@ -298,16 +298,16 @@ void Displayer::iota() {
         case TextChangeOrder::SINGLE_ONOFF:
           if (currChangeOrder.getVelocityIsHorizontal()) {
             // stop horizontal scroll when exit far side
-            if ((scroll_direction < 0 && x <= -length) ||
-                (scroll_direction > 0 && x >= canvas->width())) {
+            if ((scroll_direction < 0 && x < -length) ||
+                (scroll_direction > 0 && x > canvas->width())) {
               x = canvas->width()+1;  // off screen
               setChangeDone();
             }
           }
           else {
             // stop vertical scroll when exit top or bottom
-            if ((scroll_direction < 0 && y <= -currFont.height()) ||
-                (scroll_direction > 0 && y >= canvas->height())) {
+            if ((scroll_direction < 0 && y < -currFont.height()) ||
+                (scroll_direction > 0 && y > canvas->height())) {
               y = canvas->height()+1; // off screen
               setChangeDone();
             }
