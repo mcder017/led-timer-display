@@ -6,3 +6,5 @@ display information output from the off-the-shelf racing timer via a USB-to-Ethe
 and connected to the Pi.
 
 Forked from https://github.com/hzeller/rpi-rgb-led-matrix
+
+Can be edited in VS Code, push updates to GitHub; on the Pi command line use git pull to update, and then make
