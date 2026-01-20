@@ -178,8 +178,6 @@ void Receiver::addMonitoring(int new_descriptor) {
 }
 
 void Receiver::checkAndAcceptConnection() {
-    std::string uniqueNameExtension = "*";
-
     struct sockaddr_in cli_addr;
     socklen_t clilen = sizeof(cli_addr);
    
@@ -600,6 +598,7 @@ void Receiver::Run() {
     const short FLAG_DO_STOP = ~(FLAG_POLLIN | FLAG_SINGLE_CLOSE);  // any other flag treated as error for which we will stop the receiver completely
 
     bool do_notify_updated_client_list = false;  // if true, send client list to all clients who monitor the displayed text
+    bool try_compress_extensions = false; // if true, try to remove unique source name extension characters that may no longer be necessary, after processing events
 
     lockedSetupInitialSocket(); // may ALSO lock running internally
 
@@ -727,6 +726,8 @@ void Receiver::Run() {
 
                 if (needs_compress) {
                     compressSockets();  // remove closed sockets from array
+                    try_compress_extensions = true; // after removing sockets, may be able to compress unique name extensions
+
                     needs_compress = false;
                 }
             }
@@ -739,6 +740,16 @@ void Receiver::Run() {
 
             // now look for any socket writes that have been requested on remaining connections, and send them
             processWrites();
+
+            // after sending messages using existing consistent client names, try to remove unique name extensions if no longer needed
+            if (try_compress_extensions) {
+                const bool clientNamesChanged = compressUniqueExtensions();
+                if (clientNamesChanged) {   // at least one name changed
+                    do_notify_updated_client_list = true;
+                }
+
+                try_compress_extensions = false;
+            }
         }
     }
     // TODO main loop could be wrapped in try/catch
@@ -759,6 +770,61 @@ void Receiver::Run() {
         // Only give a message if we are interactive. If connected via pipe, be quiet
         printf("Sockets closed, ending Receiver.\n");
     }
+}
+
+bool Receiver::compressUniqueExtensions() {
+    bool any_name_changed = false;  // return value
+
+    bool loop_found_name_change;
+    do {
+        loop_found_name_change = false;
+
+        // for each descriptor, check if its unique name extension can be removed
+        for (int i = 0; i < num_socket_descriptors; i++) {
+            std::string& source_name = descriptor_support_data[i].source_name_unique;
+
+            bool this_name_changed;
+            do {
+                this_name_changed = false;
+
+                // check if this name has the extension used for uniqueness
+                const std::string::size_type ext_pos = source_name.find(uniqueNameExtension);
+                if (ext_pos != std::string::npos                                        // speed the test (most of the time) by looking for "extension not found"
+                    && ext_pos == source_name.length()-uniqueNameExtension.length()     // extension is suffixed
+                    && ext_pos > 0) {                                                   // guard against reducing name to zero length
+
+                    // has extension, check if any other source has the same base name
+                    const std::string base_name = source_name.substr(0, source_name.length()-uniqueNameExtension.length());
+                    bool found_duplicate = false;
+                    for (int j = 0; j < num_socket_descriptors; j++) {
+                        if (j != i) {
+                            if (descriptor_support_data[j].source_name_unique == base_name) {
+                                found_duplicate = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!found_duplicate) {
+                        // can remove extension
+                        if (isatty(STDIN_FILENO)) {
+                            // Only give a message if we are interactive. If connected via pipe, be quiet
+                            printf("Compressing unique name for descriptor index %d from %s to %s\n", i, source_name.c_str(), base_name.c_str());
+                        }                    
+
+                        source_name = base_name;
+
+                        any_name_changed = true;        // ensure method return value set
+                        loop_found_name_change = true;  // prepare to recheck all names in case extensions were applied to similar names that can now compress as well
+                        this_name_changed = true;       // prepare to recheck in case multiple extensions were applied to this name
+                    }
+                }
+            }
+            while (this_name_changed);  // repeat until no further change possible for this name
+        }
+    }
+    while (loop_found_name_change);  // repeat until no further changes possible for any name
+    return any_name_changed;
 }
 
 void Receiver::processWrites() {

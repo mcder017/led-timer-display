@@ -155,6 +155,8 @@ protected:
      }
 
 private:
+     inline static const std::string uniqueNameExtension = "*";  // appended (as needed) to source name to ensure uniqueness
+
      struct DescriptorInfo {
           // no lock needed, only used by this object's Run thread
           std::string tcp_unprocessed;  // empty buffer to accumulate unprocessed messages separated by newlines
@@ -222,6 +224,7 @@ private:
      void closeAllSockets();
      void closeSingleSocket(int aDescriptor);     // may also lock on mutex_running
      void compressSockets();
+     bool compressUniqueExtensions();
      void processWrites();
      void internalSetActiveClient(std::string aClientName);    
      void handleUPLCCommand(const std::string& message_string, DescriptorInfo& aDescriptorRef);
