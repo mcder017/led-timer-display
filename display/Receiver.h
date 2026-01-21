@@ -64,13 +64,13 @@ public:
      // Implement this and run while running() returns true.
      void Run() override;
 
-     bool isRunning() {return lockedTestRunning();}    // locks mutex_is_running internally
+     [[nodiscard]] bool isRunning() {return lockedTestRunning();}    // locks mutex_is_running internally
 
-     bool isDisplayableMessage(const RawMessage& aMessage) {
+     [[nodiscard]] bool isDisplayableMessage(const RawMessage& aMessage) {
           return aMessage.protocol != UPLC_COMMAND;    // all non-command messages are displayable, and all command messages are not displayable
      }
 
-     bool isPendingMessage() {
+     [[nodiscard]]bool isPendingMessage() {
           rgb_matrix::MutexLock l(&mutex_msg_queue);
           return !active_message_queue.empty();
      }
@@ -82,7 +82,7 @@ public:
           return pendingMessage;
      }
 
-     bool isNoActiveSourceOrPending() {
+     [[nodiscard]]bool isNoActiveSourceOrPending() {
           rgb_matrix::MutexLock l(&mutex_descriptors);
           return (num_socket_descriptors < 2) || (active_display_sockfd < 0 && !pending_active_at_next_message);   // 1st descriptor is port listener
      }
@@ -94,7 +94,7 @@ public:
           internalSetActiveClient(aClientName);
      }
 
-     std::string getLocalAddresses();
+     [[nodiscard]] std::string getLocalAddresses();
 
      void reportDisplayed(const std::string& aMessage) {
           // public methods must only lock one flag at a time
@@ -112,17 +112,17 @@ public:
           }
      }
 
-     std::string getReportedDisplayedMessage() {
+     [[nodiscard]]std::string getReportedDisplayedMessage() {
           rgb_matrix::MutexLock l(&mutex_report_flag);
           return reported_displayed_last_message;
      }
 
-     inline bool isAnyReportingRequested() {
+     [[nodiscard]] inline bool isAnyReportingRequested() {
           rgb_matrix::MutexLock l(&mutex_report_flag);
           return is_any_reporting_requested;
      }
 
-     static std::string nonprintableToHexadecimal(const char* str);
+     [[nodiscard]] static std::string nonprintableToHexadecimal(const char* str);
      static void setPreferredCommandFormatTemplate(int templateIndex);
 
 protected:

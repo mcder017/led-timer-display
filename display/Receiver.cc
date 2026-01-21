@@ -16,6 +16,7 @@
 #include <strings.h>    // bzero
 #include <string.h>     // strlen
 #include <csignal>
+#include <chrono>
 
 #include "TextChangeOrder.h"
 
@@ -611,11 +612,19 @@ void Receiver::Run() {
     bool do_notify_updated_client_list = false;  // if true, send client list to all clients who monitor the displayed text
     bool try_compress_extensions = false; // if true, try to remove unique source name extension characters that may no longer be necessary, after processing events
 
+    bool checking_message_flood = false;
+    std::chrono::time_point<std::chrono::system_clock> initial_connection_message_flood_start_time = std::chrono::system_clock::now();
+    const int MESSAGE_FLOOD_COMPLETE_MILLISECONDS = 50; // time with no messages to consider flood complete, when initially setting first active client
+
     lockedSetupInitialSocket(); // may ALSO lock running internally
 
     while (lockedTestRunning()) {
         // check if requested to change active display (and its queue)
-        if (pending_active_display_name.length() > 0) {
+        if (pending_active_display_name.length() > 0
+            && (!checking_message_flood
+                || (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - initial_connection_message_flood_start_time).count() >= MESSAGE_FLOOD_COMPLETE_MILLISECONDS))
+           ) {
+            checking_message_flood = false; // clear flood checking flag
             doubleLockedChangeActiveDisplay(pending_active_display_name);          // locks msg_queue AND descriptors
             do_notify_updated_client_list = true;
             pending_active_display_name = "";  // clear pending display source
@@ -679,8 +688,8 @@ void Receiver::Run() {
 
                                 if (pending_active_at_next_message 
                                     && descriptor_support_data[i].inactive_message_queue.size() > 0
-                                    && (descriptor_support_data[i].inactive_message_queue.front().protocol != UPLC_COMMAND
-                                        || descriptor_support_data[i].inactive_message_queue.back().protocol != UPLC_COMMAND)) {
+                                    && (isDisplayableMessage(descriptor_support_data[i].inactive_message_queue.front())
+                                        || isDisplayableMessage(descriptor_support_data[i].inactive_message_queue.back()))) {
 
                                     if (isatty(STDIN_FILENO)) {
                                         // Only give a message if we are interactive. If connected via pipe, be quiet
@@ -688,6 +697,15 @@ void Receiver::Run() {
                                     }                    
                                     pending_active_display_name = descriptor_support_data[i].source_name_unique;  // set pending active display to this source
                                     pending_active_at_next_message = false;  // only set active display once, at first message; not automatically at every disconnect of active display
+
+                                    // RTPro may hold many messages in outbound ethernet buffer if display is defined but not connected.
+                                    // it then releases them when cable later connected to display (connection established)
+                                    // We do not want to display all these old messages, so wait while they are delivered and then display (last displayable) message when flood (if any) appears complete
+                                    checking_message_flood = true;
+                                    initial_connection_message_flood_start_time = std::chrono::system_clock::now();
+                                }
+                                else if (checking_message_flood) {
+                                    initial_connection_message_flood_start_time = std::chrono::system_clock::now(); // reset flood timer on each received message
                                 }
 
                                 // trim if inactive queue, or move inactive entries to active queue
