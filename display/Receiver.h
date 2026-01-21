@@ -66,6 +66,10 @@ public:
 
      bool isRunning() {return lockedTestRunning();}    // locks mutex_is_running internally
 
+     bool isDisplayableMessage(const RawMessage& aMessage) {
+          return aMessage.protocol != UPLC_COMMAND;    // all non-command messages are displayable, and all command messages are not displayable
+     }
+
      bool isPendingMessage() {
           rgb_matrix::MutexLock l(&mutex_msg_queue);
           return !active_message_queue.empty();
@@ -177,7 +181,7 @@ private:
      int port_number;
      int listen_for_clients_sockfd;          // entry in the socket_descriptors array for listening for new clients
      std::string closingErrorMessage;   // if not empty, displayable error message to queue when stopping thread
-     RawMessage active_client_last_message;  // last message received from active client (if any), used for restoring display later
+     RawMessage active_client_last_displayable_message;  // last displayable message received from active client (if any), used for restoring display later.  logic not arranged to allow for detecting duplicate messages.
 
      // If multiple locks, must ensure can not have deadlock between threads waiting for resources.
      // One way to do that is to ensure that only the Run thread can have multiple locks at once,

@@ -456,6 +456,7 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
     
     if (target_client_name.length() > 0) {
 
+        // find array index of old active source (if any)
         int old_active_index = -1;
         if (active_display_sockfd >= 0) {
             for (int i = 0; i < num_socket_descriptors; i++) {
@@ -466,6 +467,7 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
             }
         }
 
+        // find array index of new active source if matching name exists
         int new_active_index = -1;
         for (int i = 0; i < num_socket_descriptors; i++) {
             if (descriptor_support_data[i].source_name_unique == target_client_name) {
@@ -488,6 +490,8 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
 
             // move any active queue to old source inactive status
             if (old_active_index >= 0) {    // avoid segmentation fault... there might not be a previous active index
+                bool queue_has_displayable_message = false;
+
                 if (active_message_queue.size() > 0) {
                     if (isatty(STDIN_FILENO)) {
                         // Only give a message if we are interactive. If connected via pipe, be quiet
@@ -495,34 +499,41 @@ void Receiver::doubleLockedChangeActiveDisplay(std::string target_client_name) {
                     }                    
 
                     while (active_message_queue.size() > 0) {
+                        if (isDisplayableMessage(active_message_queue.front())) {
+                            queue_has_displayable_message = true;
+                        }
                         descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_message_queue.front());
                         active_message_queue.pop_front();
                     }
                 }
-                else {
-                    // no pending messages, so store the last (currently displayed) message
+                if (!queue_has_displayable_message) {
+                    // no pending displayable (non-command) message, so store the last (currently displayed) message
                     if (isatty(STDIN_FILENO)) {
                         // Only give a message if we are interactive. If connected via pipe, be quiet
                         printf("No messages pending for old source, storing last message...\n");
                     }
-                    descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_client_last_message);
+                    descriptor_support_data[old_active_index].inactive_message_queue.push_back(active_client_last_displayable_message);
                 }
             }
 
             // whenever we change source, we (at least momentarily) clear the display
             // for example so that downstream code (Formatter) does not discard messages as duplicates
-            active_message_queue.push_back(RawMessage(SIMPLE_TEXT, ""));  // clear display
+            RawMessage clearMessage = RawMessage(SIMPLE_TEXT, "");
+            active_message_queue.push_back(clearMessage);  // clear display
+            active_client_last_displayable_message = clearMessage;     // typically overridden while queuing inactive messages, below
 
             // move any new source inactive queue to active status
-            if (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {
+            if (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {                
                 if (isatty(STDIN_FILENO)) {
                     // Only give a message if we are interactive. If connected via pipe, be quiet
                     printf("Queueing %ld new active messages...\n", descriptor_support_data[new_active_index].inactive_message_queue.size());
                 }                    
 
                 while (descriptor_support_data[new_active_index].inactive_message_queue.size() > 0) {
+                    if (isDisplayableMessage(descriptor_support_data[new_active_index].inactive_message_queue.front())) {
+                        active_client_last_displayable_message = descriptor_support_data[new_active_index].inactive_message_queue.front();  // store last message as display for this source
+                    }
                     active_message_queue.push_back(descriptor_support_data[new_active_index].inactive_message_queue.front());
-                    active_client_last_message = descriptor_support_data[new_active_index].inactive_message_queue.front();  // store last message for this source
                     descriptor_support_data[new_active_index].inactive_message_queue.pop_front();
                 }
             }
@@ -856,50 +867,68 @@ void Receiver::processWrites() {
 void Receiver::lockedProcessQueue(DescriptorInfo& aDescriptorRef, bool isActiveSource) {
     if (!isActiveSource) {
         // process any command messages now, and erase them from the inactive queue
-        for (auto iter = aDescriptorRef.inactive_message_queue.begin(); iter != aDescriptorRef.inactive_message_queue.end() ; /*NOTE: no incrementation of the iterator here*/) {
-            if ((*iter).protocol == UPLC_COMMAND) {
+        for (auto iter = aDescriptorRef.inactive_message_queue.begin(); iter != aDescriptorRef.inactive_message_queue.end() ; /* NOTE: no incrementation of the iterator here */) {
+            if (!isDisplayableMessage(*iter)) { // all non-displayable messages are command messages
                 if (isatty(STDIN_FILENO)) {
                     // Only give a message if we are interactive. If connected via pipe, be quiet
                     printf("Handling command from client (not active display)\n");
                 }
 
-                // handle UPLC_COMMAND message here.  do not add to active queue for display
-                handleUPLCCommand((*iter).data, aDescriptorRef);
+                if ((*iter).protocol == UPLC_COMMAND) {
+                    // handle UPLC_COMMAND message here.  do not add to active queue for display
+                    handleUPLCCommand((*iter).data, aDescriptorRef);
+                }
+                else {
+                    if (isatty(STDIN_FILENO)) {
+                        // Only give a message if we are interactive. If connected via pipe, be quiet
+                        printf("Inactive source command message was unexpectedly not UPLC Command, discarding\n");
+                    }
+                }
 
-                iter = aDescriptorRef.inactive_message_queue.erase(iter); // erase returns the next iterator
+                iter = aDescriptorRef.inactive_message_queue.erase(iter); // erase returns the next iterator, so no other increment needed
             }
             else {
-                ++iter; // otherwise increment it manually
+                ++iter; // otherwise increment iterator manually
             }
         }
 
         // for sources that are not being displayed,
         // shrink queue to only retain most recent displayable message
-        // which is useful when the active client is switched to this source
-        while (aDescriptorRef.inactive_message_queue.size() > 1) {    
-            aDescriptorRef.inactive_message_queue.pop_front();
+        // which later will avoid spurious displayed messages when the active client is switched to this source
+        while (aDescriptorRef.inactive_message_queue.size() > 1) {  
+            aDescriptorRef.inactive_message_queue.pop_front();      // all remaining messages are displayable, so just pop from front until only one remains
         }
     }
-    else {
-        // move any queued messages for this client to active queue, intercepting any UPLC_COMMAND messages to be handled here
+    else {  // active source
+        // move any inactive queued messages for this client to active queue, intercepting any UPLC_COMMAND messages to be handled here immediately
         while (aDescriptorRef.inactive_message_queue.size() > 0) {
-            if (aDescriptorRef.inactive_message_queue.front().protocol == UPLC_COMMAND) {
-                if (isatty(STDIN_FILENO)) {
-                    // Only give a message if we are interactive. If connected via pipe, be quiet
-                    printf("Handling command from client (active display)\n");
-                }
+            if (!isDisplayableMessage(aDescriptorRef.inactive_message_queue.front())) { // all non-displayable messages are command messages
+                if (aDescriptorRef.inactive_message_queue.front().protocol == UPLC_COMMAND) {
+                    if (isatty(STDIN_FILENO)) {
+                        // Only give a message if we are interactive. If connected via pipe, be quiet
+                        printf("Handling command from client (active display)\n");
+                    }
 
-                // handle UPLC_COMMAND message here.  do not add to active queue for display
-                handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
+                    // handle UPLC_COMMAND message here.  do not add to active queue for display
+                    handleUPLCCommand(aDescriptorRef.inactive_message_queue.front().data, aDescriptorRef);
+                }
+                else {
+                    if (isatty(STDIN_FILENO)) {
+                        // Only give a message if we are interactive. If connected via pipe, be quiet
+                        printf("Active source command message was unexpectedly not UPLC Command, discarding\n");
+                    }
+                    // no further action on this message
+                }
             }
-            else {
+            else {      // displayable message
                 // copy to active queue
                 lockedAppendMessageActiveQueue(aDescriptorRef.inactive_message_queue.front());
 
-                // always keep copy of last displayable (non-command) message from the active client
+                // always keep copy of last displayable message from the active client
                 // for use in storing when the active client is switched, and later switched back
-                active_client_last_message = aDescriptorRef.inactive_message_queue.front();
+                active_client_last_displayable_message = aDescriptorRef.inactive_message_queue.front();
             }
+            
             // remove from inactive queue
             aDescriptorRef.inactive_message_queue.pop_front();
         }
@@ -937,7 +966,7 @@ void Receiver::handleUPLCCommand(const std::string& message_string, DescriptorIn
 
                 // always keep copy of last displayable (non-command) message from the active client
                 // for use in storing when the active client is switched, and later switched back...
-                active_client_last_message = clearMessage;
+                active_client_last_displayable_message = clearMessage;
             }
             break;
         case UPLC_COMMAND_CLEAR_ONCE:
