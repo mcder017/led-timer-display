@@ -624,7 +624,12 @@ void Receiver::Run() {
             && (!checking_message_flood
                 || (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - initial_connection_message_flood_start_time).count() >= MESSAGE_FLOOD_COMPLETE_MILLISECONDS))
            ) {
+            if (isatty(STDIN_FILENO) && checking_message_flood) {
+                // Only give a message if we are interactive. If connected via pipe, be quiet
+                printf("Message flood pause complete, changing active display\n");        
+            }
             checking_message_flood = false; // clear flood checking flag
+
             doubleLockedChangeActiveDisplay(pending_active_display_name);          // locks msg_queue AND descriptors
             do_notify_updated_client_list = true;
             pending_active_display_name = "";  // clear pending display source
